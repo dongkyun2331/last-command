@@ -1,4 +1,5 @@
 import { GAME } from "../config.js";
+import { CampaignSystem } from "../systems/CampaignSystem.js";
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -9,7 +10,7 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#071411");
     this.drawBackdrop();
 
-    this.add.text(GAME.width / 2, 138, "LAST COMMAND", {
+    this.add.text(GAME.width / 2, 112, "LAST COMMAND", {
       fontFamily: "Arial Black, Impact, sans-serif",
       fontSize: "76px",
       color: "#f0e7c9",
@@ -18,23 +19,28 @@ export class MenuScene extends Phaser.Scene {
       letterSpacing: 5,
     }).setOrigin(0.5);
 
-    this.add.text(GAME.width / 2, 211, "AI SQUAD BATTLE RPG", {
+    this.add.text(GAME.width / 2, 184, "AI SQUAD BATTLE RPG", {
       fontFamily: "Arial, sans-serif",
       fontSize: "20px",
       color: "#73e2bc",
       letterSpacing: 8,
     }).setOrigin(0.5);
 
-    this.add.text(GAME.width / 2, 278, "AI 동료 병사들을 지휘하며 적 부대를 돌파하라", {
+    this.add.text(GAME.width / 2, 245, "AI 동료 병사들을 지휘하며 적 부대를 돌파하라", {
       fontFamily: "Arial, sans-serif",
       fontSize: "20px",
       color: "#c3cec8",
     }).setOrigin(0.5);
 
-    this.makeButton(GAME.width / 2, 388, 310, 64, "GAME START", () => {
-      this.scene.start("GameScene");
+    const campaignLabel = CampaignSystem.hasProgress() ? "CONTINUE CAMPAIGN" : "STORY CAMPAIGN";
+    this.makeButton(GAME.width / 2, 344, 340, 62, campaignLabel, () => {
+      CampaignSystem.ensure();
+      this.scene.start("WorldMapScene");
     }, true);
-    this.makeButton(GAME.width / 2, 472, 310, 56, "HOW TO PLAY", () => {
+    this.makeButton(GAME.width / 2, 424, 340, 56, "QUICK BATTLE", () => {
+      this.scene.start("GameScene", { mode: "quick", stageId: "quick-battle" });
+    });
+    this.makeButton(GAME.width / 2, 497, 340, 52, "HOW TO PLAY", () => {
       this.openHowToPlay();
     });
 
@@ -116,7 +122,7 @@ export class MenuScene extends Phaser.Scene {
       color: "#eff6e8",
     }).setOrigin(0.5);
     const body = this.add.text(GAME.width / 2, 335,
-      "WASD / 방향키   이동\n공격 범위의 가장 가까운 적 자동공격\n\n1  돌격  ·  공격력 +20%, 방어력 -10%\n2  집결  ·  영웅 주변으로 복귀\n3  방어  ·  방어력 +30%, 이동 속도 -20%\n\n전장의 적 지휘관 3명을 모두 쓰러뜨리세요.\n포로에게 접근하면 최대 20명까지 자동으로 합류합니다.\nR 재시작   ·   ESC 일시정지", {
+      "WASD / 방향키   이동\n공격 범위의 가장 가까운 적 자동공격\n\n1  돌격  ·  공격력 +20%, 방어력 -10%\n2  집결  ·  영웅 주변으로 복귀\n3  방어  ·  방어력 +30%, 이동 속도 -20%\n\nSTORY: 전술 지도의 4개 지역을 차례로 돌파하세요.\nQUICK: 지휘관 3명을 격파하는 독립 전투입니다.\n포로에게 접근하면 최대 20명까지 합류합니다.\nR 재시작   ·   ESC 일시정지", {
         fontFamily: "Arial, sans-serif",
         fontSize: "20px",
         color: "#d4e2dc",

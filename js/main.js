@@ -1,4 +1,5 @@
 import { MenuScene } from "./scenes/MenuScene.js";
+import { WorldMapScene } from "./scenes/WorldMapScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { GAME } from "./config.js";
 
@@ -29,7 +30,7 @@ const config = {
   input: {
     activePointers: 3,
   },
-  scene: [MenuScene, GameScene],
+  scene: [MenuScene, WorldMapScene, GameScene],
 };
 
 window.lastCommandGame = new Phaser.Game(config);

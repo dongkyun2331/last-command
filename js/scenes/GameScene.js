@@ -5,10 +5,17 @@ import { Enemy } from "../entities/Enemy.js";
 import { SpatialHash } from "../systems/SpatialHash.js";
 import { AISystem } from "../systems/AISystem.js";
 import { BattleSystem } from "../systems/BattleSystem.js";
+import { CampaignSystem } from "../systems/CampaignSystem.js";
+import { getStageConfig } from "../data/StageConfig.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
+  }
+
+  init(data = {}) {
+    this.mode = data.mode === "story" ? "story" : "quick";
+    this.stage = getStageConfig(data.stageId, this.mode);
   }
 
   create() {
@@ -16,7 +23,9 @@ export class GameScene extends Phaser.Scene {
     this.allies = [];
     this.enemies = [];
     this.recruits = [];
-    this.commandersRemaining = 3;
+    this.totalCommanders = this.stage.squads.filter((squad) => squad.commander).length;
+    this.commandersRemaining = this.totalCommanders;
+    this.rescuedThisStage = 0;
     this.gameEnded = false;
     this.isPaused = false;
     this.nextRecruitCheckAt = 0;
@@ -29,7 +38,7 @@ export class GameScene extends Phaser.Scene {
 
     this.allyGroup = this.physics.add.group();
     this.enemyGroup = this.physics.add.group();
-    this.player = new Player(this, 310, 805);
+    this.player = new Player(this, this.stage.playerStart[0], this.stage.playerStart[1]);
     this.physics.add.collider(this.player, this.obstacles);
     this.physics.add.collider(this.allyGroup, this.obstacles);
     this.physics.add.collider(this.enemyGroup, this.obstacles);
@@ -47,10 +56,7 @@ export class GameScene extends Phaser.Scene {
 
     this.spawnInitialAllies();
     this.spawnEnemySquads();
-    this.spawnRecruit(535, 744);
-    this.spawnRecruit(1085, 675);
-    this.spawnRecruit(1610, 960);
-    this.spawnRecruit(2070, 720);
+    this.stage.recruits.forEach(([x, y]) => this.spawnRecruit(x, y));
 
     this.createInput();
     this.createHUD();
@@ -123,24 +129,28 @@ export class GameScene extends Phaser.Scene {
   createBattlefield() {
     this.physics.world.setBounds(0, 0, GAME.worldWidth, GAME.worldHeight);
     const g = this.add.graphics().setDepth(-20);
-    g.fillStyle(0x244630, 1).fillRect(0, 0, GAME.worldWidth, GAME.worldHeight);
-    g.fillStyle(0x37533a, 0.38);
+    g.fillStyle(this.stage.field.base, 1).fillRect(0, 0, GAME.worldWidth, GAME.worldHeight);
+    g.fillStyle(this.stage.field.patch, 0.38);
     for (let i = 0; i < 105; i += 1) {
       const x = 45 + ((i * 263) % (GAME.worldWidth - 90));
       const y = 35 + ((i * 137) % (GAME.worldHeight - 70));
       g.fillEllipse(x, y, 42 + (i % 4) * 19, 16 + (i % 3) * 8);
     }
-    g.lineStyle(78, 0x75684a, 0.24);
-    g.beginPath().moveTo(90, 820).lineTo(890, 790).lineTo(1320, 520).lineTo(1900, 480).strokePath();
-    g.beginPath().moveTo(1190, 570).lineTo(1370, 1260).lineTo(2020, 1080).strokePath();
-    g.lineStyle(2, 0x95b479, 0.09);
+    g.lineStyle(78, this.stage.field.road, 0.24);
+    for (const path of this.stage.field.paths) {
+      g.beginPath();
+      g.moveTo(path[0][0], path[0][1]);
+      for (let i = 1; i < path.length; i += 1) g.lineTo(path[i][0], path[i][1]);
+      g.strokePath();
+    }
+    g.lineStyle(2, this.stage.field.grid, 0.09);
     for (let x = 0; x <= GAME.worldWidth; x += 160) g.lineBetween(x, 0, x, GAME.worldHeight);
     for (let y = 0; y <= GAME.worldHeight; y += 160) g.lineBetween(0, y, GAME.worldWidth, y);
 
-    this.add.text(160, 935, "EMBERFIELD OUTSKIRTS", {
+    this.add.text(160, 935, this.stage.title, {
       fontFamily: "Arial Black, sans-serif",
       fontSize: "32px",
-      color: "#d9e5c5",
+      color: this.stage.field.labelColor,
       alpha: 0.12,
       letterSpacing: 5,
     }).setDepth(-10).setRotation(-0.04);
@@ -148,24 +158,10 @@ export class GameScene extends Phaser.Scene {
 
   createObstacleField() {
     this.obstacles = this.physics.add.staticGroup();
-    const trees = [
-      [170, 620], [220, 1020], [420, 520], [620, 1035], [845, 540], [975, 1040],
-      [1140, 280], [1210, 1030], [1420, 770], [1530, 260], [1660, 700],
-      [1800, 330], [2050, 620], [2200, 980], [2270, 1320], [1650, 1400],
-    ];
-    const rocks = [
-      [455, 930], [690, 600], [940, 720], [1110, 1220], [1310, 330], [1470, 1090],
-      [1730, 520], [1860, 880], [2140, 410], [2040, 1360], [760, 1340],
-    ];
-    trees.forEach(([x, y], i) => this.obstacles.create(x, y, "tree").setScale(i % 3 === 0 ? 1.15 : 1).refreshBody());
-    rocks.forEach(([x, y], i) => this.obstacles.create(x, y, "rock").setScale(i % 4 === 0 ? 1.25 : 1).refreshBody());
+    this.stage.obstacles.trees.forEach(([x, y], i) => this.obstacles.create(x, y, "tree").setScale(i % 3 === 0 ? 1.15 : 1).refreshBody());
+    this.stage.obstacles.rocks.forEach(([x, y], i) => this.obstacles.create(x, y, "rock").setScale(i % 4 === 0 ? 1.25 : 1).refreshBody());
 
-    const wallSegments = [
-      [865, 1180, 0], [961, 1180, 0], [1057, 1180, 0],
-      [1510, 610, Math.PI / 2], [1510, 706, Math.PI / 2],
-      [1980, 1260, 0], [2076, 1260, 0], [2172, 1260, 0],
-    ];
-    wallSegments.forEach(([x, y, rotation]) => {
+    this.stage.obstacles.walls.forEach(([x, y, rotation]) => {
       const wall = this.obstacles.create(x, y, "wall").setRotation(rotation);
       wall.refreshBody();
       if (rotation) wall.body.setSize(36, 96).setOffset(30, -30);
@@ -179,14 +175,24 @@ export class GameScene extends Phaser.Scene {
     const personalityDeck = Phaser.Utils.Array.Shuffle([
       "Aggressive", "Cautious", "Protector", "Coward",
       "Aggressive", "Cautious", "Protector", "Coward",
+      "Aggressive", "Cautious", "Protector", "Coward",
+      "Aggressive", "Cautious", "Protector", "Coward",
+      "Aggressive", "Cautious", "Protector", "Coward",
     ]);
-    for (let i = 0; i < GAME.initialAllies; i += 1) {
-      const angle = (i / GAME.initialAllies) * Math.PI * 2;
-      this.spawnAlly(
-        this.player.x + Math.cos(angle) * 74,
-        this.player.y + Math.sin(angle) * 65,
-        personalityDeck[i],
+    const savedRoster = this.mode === "story" ? CampaignSystem.getRoster() : null;
+    const roster = savedRoster ?? Array.from({ length: GAME.initialAllies }, (_, index) => ({
+      personality: personalityDeck[index],
+      hp: 100,
+    }));
+    for (let i = 0; i < roster.length; i += 1) {
+      const ring = Math.floor(i / 8) + 1;
+      const angle = ((i % 8) / 8) * Math.PI * 2;
+      const ally = this.spawnAlly(
+        this.player.x + Math.cos(angle) * (54 + ring * 24),
+        this.player.y + Math.sin(angle) * (48 + ring * 20),
+        roster[i].personality,
       );
+      if (ally) ally.hp = Phaser.Math.Clamp(roster[i].hp ?? 100, 1, 100);
     }
   }
 
@@ -199,14 +205,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   spawnEnemySquads() {
-    const squads = [
-      { x: 775, y: 795, count: 5, commander: true },
-      { x: 1390, y: 430, count: 7, commander: true },
-      { x: 1900, y: 1050, count: 8, commander: true },
-      { x: 1290, y: 1320, count: 6, commander: false },
-    ];
-
-    squads.forEach((squad, squadId) => {
+    this.stage.squads.forEach((squad, squadId) => {
       for (let i = 0; i < squad.count; i += 1) {
         const angle = (i / squad.count) * Math.PI * 2;
         const radius = 72 + (i % 2) * 34;
@@ -218,16 +217,25 @@ export class GameScene extends Phaser.Scene {
           false,
         );
       }
-      if (squad.commander) this.spawnEnemy(squad.x, squad.y, squadId, squad, true);
+      if (squad.commander) this.spawnEnemy(squad.x, squad.y, squadId, squad, true, squad.boss);
     });
   }
 
-  spawnEnemy(x, y, squadId, squadCenter, isCommander) {
+  spawnEnemy(x, y, squadId, squadCenter, isCommander, isBoss = false) {
     const enemy = new Enemy(this, x, y, squadId, squadCenter, isCommander);
+    if (isBoss) {
+      enemy.isBoss = true;
+      enemy.maxHp = 520;
+      enemy.hp = 520;
+      enemy.damage *= 1.25;
+      enemy.attackCooldown *= 0.86;
+      enemy.setScale(1.42);
+      enemy.auraRing?.setRadius(145).setStrokeStyle(3, 0xffd36d, 0.72);
+    }
     this.enemies.push(enemy);
     this.enemyGroup.add(enemy);
     if (isCommander) {
-      enemy.targetLabel = this.add.text(x, y - 55, "COMMANDER", {
+      enemy.targetLabel = this.add.text(x, y - 55, isBoss ? "SUPREME COMMANDER" : "COMMANDER", {
         fontFamily: "Arial, sans-serif",
         fontStyle: "bold",
         fontSize: "11px",
@@ -272,7 +280,7 @@ export class GameScene extends Phaser.Scene {
     this.keys.assault.on("down", () => this.setCommand(COMMAND.ASSAULT));
     this.keys.regroup.on("down", () => this.setCommand(COMMAND.REGROUP));
     this.keys.defend.on("down", () => this.setCommand(COMMAND.DEFEND));
-    this.keys.restart.on("down", () => this.scene.restart());
+    this.keys.restart.on("down", () => this.restartStage());
     this.keys.pause.on("down", () => this.togglePause());
 
   }
@@ -304,6 +312,14 @@ export class GameScene extends Phaser.Scene {
       fontSize: "20px",
       color: "#f7e8a1",
       align: "center",
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 1);
+    this.add.text(GAME.width / 2, 86, `${this.stage.titleKo}  ·  ${this.stage.objective}`, {
+      fontFamily: "Arial, sans-serif",
+      fontStyle: "bold",
+      fontSize: "12px",
+      color: "#c5d8ce",
+      backgroundColor: "#07110fbf",
+      padding: { x: 10, y: 5 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 1);
 
     this.createCommandButton(380, 680, 170, "1  돌격", "+ATK  /  -DEF", COMMAND.ASSAULT);
@@ -398,19 +414,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   showOpeningGuide() {
-    const panel = this.add.rectangle(GAME.width / 2, 305, 630, 192, 0x06100e, 0.9)
+    const tutorial = Boolean(this.stage.tutorial);
+    const panel = this.add.rectangle(GAME.width / 2, 305, 670, tutorial ? 205 : 142, 0x06100e, 0.9)
       .setStrokeStyle(2, 0x84d9b8, 0.7)
       .setScrollFactor(0)
       .setDepth(1500);
+    const guideContent = tutorial
+      ? `MISSION  ·  ${this.stage.titleKo}\nMOVE  ·  WASD / 방향키\nATTACK  ·  범위 안의 적 자동공격\nCOMMAND  ·  1 돌격   2 집결   3 방어\n\n${this.stage.objective}`
+      : `MISSION ${this.stage.campaignIndex + 1}  ·  ${this.stage.titleKo}\n\n${this.stage.objective}`;
     const text = this.add.text(GAME.width / 2, 305,
-      "MOVE  ·  WASD / 방향키\nATTACK  ·  범위 안의 적 자동공격\nCOMMAND  ·  1 돌격   2 집결   3 방어\n\n근처의 포로를 구하고 지휘관 3명을 격파하세요", {
+      guideContent, {
         fontFamily: "Arial, sans-serif",
-        fontSize: "20px",
+        fontSize: tutorial ? "19px" : "21px",
         color: "#e7f0e8",
         align: "center",
         lineSpacing: 8,
       }).setOrigin(0.5).setScrollFactor(0).setDepth(1501);
-    this.time.delayedCall(4200, () => {
+    this.time.delayedCall(tutorial ? 4200 : 2600, () => {
       this.tweens.add({ targets: [panel, text], alpha: 0, duration: 700, onComplete: () => {
         panel.destroy();
         text.destroy();
@@ -527,6 +547,7 @@ export class GameScene extends Phaser.Scene {
       recruit.sprite.destroy();
       recruit.ring.destroy();
       recruit.marker.destroy();
+      this.rescuedThisStage += 1;
       this.showToast("새로운 동료가 합류했습니다.", "#9effdc");
       this.spawnBurst(ally.x, ally.y, 0x7fffd1);
       break;
@@ -625,7 +646,7 @@ export class GameScene extends Phaser.Scene {
     const allyCount = this.allies.filter((ally) => ally.active).length;
     this.playerHpText.setText(`PLAYER HP   ${Math.ceil(this.player.hp)} / ${this.player.maxHp}`);
     this.allyCountText.setText(`아군 병력     ${allyCount} / ${GAME.maxAllies}`);
-    this.commanderText.setText(`적 지휘관     ${this.commandersRemaining} / 3`);
+    this.commanderText.setText(`적 지휘관     ${this.commandersRemaining} / ${this.totalCommanders}`);
     this.commandText.setText(`현재 명령   ${COMMAND_LABEL[this.command]}`);
     this.commandButtons?.forEach((button, key) => {
       const active = key === this.command;
@@ -657,6 +678,14 @@ export class GameScene extends Phaser.Scene {
     this.miniMap.fillStyle(0x7ee8ff, 1).fillCircle(mapX(this.player.x), mapY(this.player.y), 4);
   }
 
+  restartStage() {
+    if (this.mode === "story" && this.gameEnded && this.commandersRemaining === 0) {
+      this.scene.start("WorldMapScene");
+      return;
+    }
+    this.scene.restart({ mode: this.mode, stageId: this.stage.id });
+  }
+
   togglePause() {
     if (this.gameEnded) return;
     this.isPaused = !this.isPaused;
@@ -674,15 +703,36 @@ export class GameScene extends Phaser.Scene {
     if (this.gameEnded) return;
     this.gameEnded = true;
     this.physics.world.pause();
+    let title = victory ? "VICTORY" : "GAME OVER";
+    let subtitle = victory ? `${this.totalCommanders}명의 지휘관을 격파했습니다.` : "지휘관이 쓰러졌습니다.";
+    let primaryLabel = "다시 시작 (R)";
+    let primaryAction = () => this.restartStage();
+
+    if (victory && this.mode === "story") {
+      CampaignSystem.completeStage(this.stage.id, this.allies, this.rescuedThisStage);
+      title = this.stage.final ? "CAMPAIGN COMPLETE" : "MISSION COMPLETE";
+      subtitle = this.stage.final
+        ? "최종 명령 복구: 누구도 전장에 남겨두지 마라."
+        : "생존 부대가 다음 작전 지역으로 이동합니다.";
+      primaryLabel = "전술 지도";
+      primaryAction = () => this.scene.start("WorldMapScene");
+    }
+
     this.createEndOverlay(
-      victory ? "VICTORY" : "GAME OVER",
-      victory ? "세 지휘관을 모두 격파했습니다." : "지휘관이 쓰러졌습니다.",
+      title,
+      subtitle,
       victory ? 0xffdf7b : 0xff776c,
       true,
+      {
+        primaryLabel,
+        primaryAction,
+        secondaryLabel: "메인 화면",
+        secondaryAction: () => this.scene.start("MenuScene"),
+      },
     );
   }
 
-  createEndOverlay(title, subtitle, color, showButtons) {
+  createEndOverlay(title, subtitle, color, showButtons, buttonOptions = {}) {
     const container = this.add.container(0, 0).setScrollFactor(0).setDepth(3000);
     // Children of a fixed container still participate in Phaser's input hit test
     // with their own scroll factor. Explicitly fixing every child keeps its click
@@ -708,18 +758,18 @@ export class GameScene extends Phaser.Scene {
     container.add([shade, panel, heading, description]);
 
     if (showButtons) {
-      const restart = this.add.rectangle(GAME.width / 2 - 105, 447, 180, 48, 0x2b9e79, 1)
+      const primary = this.add.rectangle(GAME.width / 2 - 105, 447, 180, 48, 0x2b9e79, 1)
         .setScrollFactor(0).setInteractive({ useHandCursor: true }).setData("isUI", true);
-      const menu = this.add.rectangle(GAME.width / 2 + 105, 447, 180, 48, 0x1c332c, 1)
+      const secondary = this.add.rectangle(GAME.width / 2 + 105, 447, 180, 48, 0x1c332c, 1)
         .setStrokeStyle(1, 0x6c9584).setScrollFactor(0)
         .setInteractive({ useHandCursor: true }).setData("isUI", true);
-      const restartText = this.add.text(GAME.width / 2 - 105, 447, "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" })
+      const primaryText = this.add.text(GAME.width / 2 - 105, 447, buttonOptions.primaryLabel ?? "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" })
         .setOrigin(0.5).setScrollFactor(0);
-      const menuText = this.add.text(GAME.width / 2 + 105, 447, "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" })
+      const secondaryText = this.add.text(GAME.width / 2 + 105, 447, buttonOptions.secondaryLabel ?? "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" })
         .setOrigin(0.5).setScrollFactor(0);
-      restart.on("pointerdown", () => this.scene.restart());
-      menu.on("pointerdown", () => this.scene.start("MenuScene"));
-      container.add([restart, menu, restartText, menuText]);
+      primary.on("pointerdown", buttonOptions.primaryAction ?? (() => this.restartStage()));
+      secondary.on("pointerdown", buttonOptions.secondaryAction ?? (() => this.scene.start("MenuScene")));
+      container.add([primary, secondary, primaryText, secondaryText]);
     }
     return container;
   }
