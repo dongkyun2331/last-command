@@ -684,30 +684,39 @@ export class GameScene extends Phaser.Scene {
 
   createEndOverlay(title, subtitle, color, showButtons) {
     const container = this.add.container(0, 0).setScrollFactor(0).setDepth(3000);
-    const shade = this.add.rectangle(0, 0, GAME.width, GAME.height, 0x020807, 0.82).setOrigin(0);
+    // Children of a fixed container still participate in Phaser's input hit test
+    // with their own scroll factor. Explicitly fixing every child keeps its click
+    // area aligned with the rendered button after the world camera has moved.
+    const shade = this.add.rectangle(0, 0, GAME.width, GAME.height, 0x020807, 0.82)
+      .setOrigin(0)
+      .setScrollFactor(0);
     const panel = this.add.rectangle(GAME.width / 2, GAME.height / 2, 610, showButtons ? 300 : 210, 0x0b1915, 0.98)
-      .setStrokeStyle(2, color, 0.8);
+      .setStrokeStyle(2, color, 0.8)
+      .setScrollFactor(0);
     const heading = this.add.text(GAME.width / 2, showButtons ? 286 : 320, title, {
       fontFamily: "Arial Black, sans-serif",
       fontSize: showButtons ? "56px" : "46px",
       color: Phaser.Display.Color.IntegerToColor(color).rgba,
       stroke: "#07110e",
       strokeThickness: 7,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setScrollFactor(0);
     const description = this.add.text(GAME.width / 2, showButtons ? 366 : 395, subtitle, {
       fontFamily: "Arial, sans-serif",
       fontSize: "18px",
       color: "#d9e3dd",
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setScrollFactor(0);
     container.add([shade, panel, heading, description]);
 
     if (showButtons) {
       const restart = this.add.rectangle(GAME.width / 2 - 105, 447, 180, 48, 0x2b9e79, 1)
-        .setInteractive({ useHandCursor: true }).setData("isUI", true);
+        .setScrollFactor(0).setInteractive({ useHandCursor: true }).setData("isUI", true);
       const menu = this.add.rectangle(GAME.width / 2 + 105, 447, 180, 48, 0x1c332c, 1)
-        .setStrokeStyle(1, 0x6c9584).setInteractive({ useHandCursor: true }).setData("isUI", true);
-      const restartText = this.add.text(GAME.width / 2 - 105, 447, "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" }).setOrigin(0.5);
-      const menuText = this.add.text(GAME.width / 2 + 105, 447, "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" }).setOrigin(0.5);
+        .setStrokeStyle(1, 0x6c9584).setScrollFactor(0)
+        .setInteractive({ useHandCursor: true }).setData("isUI", true);
+      const restartText = this.add.text(GAME.width / 2 - 105, 447, "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" })
+        .setOrigin(0.5).setScrollFactor(0);
+      const menuText = this.add.text(GAME.width / 2 + 105, 447, "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" })
+        .setOrigin(0.5).setScrollFactor(0);
       restart.on("pointerdown", () => this.scene.restart());
       menu.on("pointerdown", () => this.scene.start("MenuScene"));
       container.add([restart, menu, restartText, menuText]);
