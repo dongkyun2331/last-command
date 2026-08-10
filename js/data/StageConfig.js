@@ -16,6 +16,7 @@ export const QUICK_STAGE = {
   titleKo: "엠버필드 전면전",
   description: "세 지휘관을 신속하게 격파하는 3~5분 독립 전투입니다.",
   objective: "적 지휘관 3명을 모두 격파하라",
+  parTimeSec: 240,
   objectiveConfig: { type: "eliminate" },
   playerStart: [310, 805],
   tutorial: true,
@@ -56,6 +57,7 @@ export const STORY_STAGES = [
     titleKo: "엠버필드 외곽",
     description: "끊어진 지휘망의 첫 신호가 발견됐다. 포로를 구출하고 외곽 봉쇄를 해제하라.",
     objective: "생존자 2명 이상을 구출하고 외곽 지휘관을 격파하라",
+    parTimeSec: 180,
     objectiveConfig: { type: "rescue-eliminate", rescueRequired: 2 },
     playerStart: [260, 810],
     tutorial: true,
@@ -83,6 +85,7 @@ export const STORY_STAGES = [
     titleKo: "붕괴한 협곡",
     description: "적의 매복선이 퇴로를 가로막고 있다. 북쪽 신호 거점을 점령하고 연속 증원을 막아내라.",
     objective: "북쪽 신호 거점을 35초 동안 방어하라",
+    parTimeSec: 210,
     objectiveConfig: {
       type: "defend",
       durationMs: 35000,
@@ -119,6 +122,7 @@ export const STORY_STAGES = [
     titleKo: "침묵한 중계소",
     description: "최종 명령의 암호 조각이 폐허가 된 중계소에 남아 있다. 세 방해 장치를 직접 파괴하라.",
     objective: "전장에 분산된 방해 중계 장치 3개를 파괴하라",
+    parTimeSec: 260,
     objectiveConfig: {
       type: "destroy-targets",
       targets: [
@@ -157,6 +161,7 @@ export const STORY_STAGES = [
     titleKo: "루멘폴 최종 방어선",
     description: "봉쇄선 너머에 피난 통로가 있다. 살아남은 모든 동료와 함께 최후의 지휘부를 무너뜨려라.",
     objective: "봉쇄 지휘관과 적 총지휘관을 모두 격파하라",
+    parTimeSec: 300,
     objectiveConfig: { type: "eliminate", bossBattle: true },
     playerStart: [250, 820],
     final: true,

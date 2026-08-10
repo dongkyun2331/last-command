@@ -1,6 +1,7 @@
 import { GAME } from "../config.js";
 import { STORY_STAGES } from "../data/StageConfig.js";
 import { CampaignSystem } from "../systems/CampaignSystem.js";
+import { ScoreSystem } from "../systems/ScoreSystem.js";
 
 const NODE_POSITIONS = [
   { x: 230, y: 450 },
@@ -81,6 +82,15 @@ export class WorldMapScene extends Phaser.Scene {
       fontSize: "15px",
       color: "#87b6a3",
     });
+
+    this.add.text(730, 43, `CAMPAIGN SCORE  ${ScoreSystem.formatScore(this.state.totalScore)}`, {
+      fontFamily: "Arial, sans-serif",
+      fontStyle: "bold",
+      fontSize: "14px",
+      color: "#f1dc91",
+      backgroundColor: "#091712cc",
+      padding: { x: 12, y: 7 },
+    }).setOrigin(0.5);
 
     this.makeButton(1090, 43, 140, 38, "MAIN MENU", () => this.scene.start("MenuScene"), false, 14);
     this.newCampaignButton = this.makeButton(925, 43, 160, 38, "NEW CAMPAIGN", () => this.confirmNewCampaign(), false, 13);
@@ -212,7 +222,9 @@ export class WorldMapScene extends Phaser.Scene {
     const stage = STORY_STAGES[this.selectedIndex];
     const isCurrent = this.selectedIndex === this.state.currentStageIndex && !this.state.completed;
     const isCleared = this.selectedIndex < this.state.currentStageIndex || this.state.completed;
-    this.stageCounterText.setText(`MISSION ${this.selectedIndex + 1} / ${STORY_STAGES.length}   ·   ${isCleared ? "CLEARED" : "ACTIVE"}`);
+    const bestScore = this.state.stageScores[stage.id] ?? 0;
+    const bestLabel = bestScore ? `   ·   BEST ${ScoreSystem.formatScore(bestScore)}` : "";
+    this.stageCounterText.setText(`MISSION ${this.selectedIndex + 1} / ${STORY_STAGES.length}   ·   ${isCleared ? "CLEARED" : "ACTIVE"}${bestLabel}`);
     this.stageTitleText.setText(`${stage.titleKo}  /  ${stage.title}`);
     this.stageDescriptionText.setText(stage.description);
     this.stageObjectiveText.setText(`목표: ${stage.objective}`);

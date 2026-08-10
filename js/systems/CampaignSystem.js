@@ -12,6 +12,20 @@ function newState() {
     allies: null,
     totalRescued: 0,
     stagesCleared: [],
+    totalScore: 0,
+    stageScores: {},
+  };
+}
+
+function normalizeState(state) {
+  return {
+    ...newState(),
+    ...state,
+    stagesCleared: Array.isArray(state?.stagesCleared) ? state.stagesCleared : [],
+    stageScores: state?.stageScores && typeof state.stageScores === "object"
+      ? state.stageScores
+      : {},
+    totalScore: Number.isFinite(state?.totalScore) ? state.totalScore : 0,
   };
 }
 
@@ -19,14 +33,17 @@ export class CampaignSystem {
   static memoryState = null;
 
   static load() {
-    if (this.memoryState) return structuredClone(this.memoryState);
+    if (this.memoryState) {
+      this.memoryState = normalizeState(this.memoryState);
+      return structuredClone(this.memoryState);
+    }
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (parsed?.version !== 1) return null;
-      this.memoryState = parsed;
-      return structuredClone(parsed);
+      this.memoryState = normalizeState(parsed);
+      return structuredClone(this.memoryState);
     } catch (error) {
       console.warn("Campaign save could not be read.", error);
       return null;
@@ -74,7 +91,7 @@ export class CampaignSystem {
     return state.allies ? structuredClone(state.allies) : null;
   }
 
-  static completeStage(stageId, activeAllies, rescuedThisStage = 0) {
+  static completeStage(stageId, activeAllies, rescuedThisStage = 0, roundResult = null) {
     const state = this.ensure();
     const stage = STORY_STAGES[state.currentStageIndex];
     if (!stage || stage.id !== stageId || state.completed) return state;
@@ -99,6 +116,11 @@ export class CampaignSystem {
     state.allies = roster;
     state.totalRescued += rescuedThisStage;
     state.stagesCleared = [...new Set([...state.stagesCleared, stageId])];
+    if (roundResult) {
+      state.stageScores[stageId] = Math.max(state.stageScores[stageId] ?? 0, roundResult.total);
+      state.totalScore = Object.values(state.stageScores)
+        .reduce((sum, score) => sum + (Number.isFinite(score) ? score : 0), 0);
+    }
     state.currentStageIndex += 1;
     state.completed = state.currentStageIndex >= STORY_STAGES.length;
     state.selectedStageIndex = Math.min(state.currentStageIndex, STORY_STAGES.length - 1);

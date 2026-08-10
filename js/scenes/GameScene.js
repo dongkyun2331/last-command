@@ -7,6 +7,7 @@ import { SpatialHash } from "../systems/SpatialHash.js";
 import { AISystem } from "../systems/AISystem.js";
 import { BattleSystem } from "../systems/BattleSystem.js";
 import { CampaignSystem } from "../systems/CampaignSystem.js";
+import { ScoreSystem } from "../systems/ScoreSystem.js";
 import { getStageConfig } from "../data/StageConfig.js";
 
 export class GameScene extends Phaser.Scene {
@@ -28,6 +29,7 @@ export class GameScene extends Phaser.Scene {
     this.totalCommanders = this.stage.squads.filter((squad) => squad.commander).length;
     this.commandersRemaining = this.totalCommanders;
     this.rescuedThisStage = 0;
+    this.roundElapsedMs = 0;
     this.defenseElapsed = 0;
     this.defenseStarted = false;
     this.defenseActive = false;
@@ -65,6 +67,7 @@ export class GameScene extends Phaser.Scene {
     this.battleSystem = new BattleSystem(this, this.spatialHash);
 
     this.spawnInitialAllies();
+    this.startingAllyCount = this.allies.filter((ally) => ally.active).length;
     this.spawnEnemySquads();
     this.stage.recruits.forEach(([x, y]) => this.spawnRecruit(x, y));
     this.createStageObjectives();
@@ -568,6 +571,9 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.gameEnded || this.isPaused || !this.player.active) return;
+    // Only active play time affects the clear-time bonus. Pausing the battle
+    // never penalizes the player or makes mobile interruptions lower a score.
+    this.roundElapsedMs += delta;
 
     const input = new Phaser.Math.Vector2(
       Number(this.cursors.right.isDown || this.keys.right.isDown || this.touchMovement.right)
@@ -929,13 +935,23 @@ export class GameScene extends Phaser.Scene {
     if (this.gameEnded) return;
     this.gameEnded = true;
     this.physics.world.pause();
+    const roundResult = ScoreSystem.calculate({
+      victory,
+      elapsedMs: this.roundElapsedMs,
+      player: this.player,
+      allies: this.allies,
+      startingAllyCount: this.startingAllyCount,
+      rescued: this.rescuedThisStage,
+      stage: this.stage,
+    });
+    this.lastRoundResult = roundResult;
     let title = victory ? "VICTORY" : "GAME OVER";
     let subtitle = victory ? `${this.totalCommanders}명의 지휘관을 격파했습니다.` : "지휘관이 쓰러졌습니다.";
     let primaryLabel = "다시 시작 (R)";
     let primaryAction = () => this.restartStage();
 
     if (victory && this.mode === "story") {
-      CampaignSystem.completeStage(this.stage.id, this.allies, this.rescuedThisStage);
+      CampaignSystem.completeStage(this.stage.id, this.allies, this.rescuedThisStage, roundResult);
       title = this.stage.final ? "CAMPAIGN COMPLETE" : "MISSION COMPLETE";
       subtitle = this.stage.final
         ? "최종 명령 복구: 누구도 전장에 남겨두지 마라."
@@ -955,10 +971,11 @@ export class GameScene extends Phaser.Scene {
         secondaryLabel: "메인 화면",
         secondaryAction: () => this.scene.start("MenuScene"),
       },
+      roundResult,
     );
   }
 
-  createEndOverlay(title, subtitle, color, showButtons, buttonOptions = {}) {
+  createEndOverlay(title, subtitle, color, showButtons, buttonOptions = {}, roundResult = null) {
     const container = this.add.container(0, 0).setScrollFactor(0).setDepth(3000);
     // Children of a fixed container still participate in Phaser's input hit test
     // with their own scroll factor. Explicitly fixing every child keeps its click
@@ -966,37 +983,114 @@ export class GameScene extends Phaser.Scene {
     const shade = this.add.rectangle(0, 0, GAME.width, GAME.height, 0x020807, 0.82)
       .setOrigin(0)
       .setScrollFactor(0);
-    const panel = this.add.rectangle(GAME.width / 2, GAME.height / 2, 610, showButtons ? 300 : 210, 0x0b1915, 0.98)
+    const resultVisible = showButtons && Boolean(roundResult);
+    const panel = this.add.rectangle(
+      GAME.width / 2,
+      GAME.height / 2,
+      resultVisible ? 860 : 610,
+      resultVisible ? 560 : showButtons ? 300 : 210,
+      0x0b1915,
+      0.98,
+    )
       .setStrokeStyle(2, color, 0.8)
       .setScrollFactor(0);
-    const heading = this.add.text(GAME.width / 2, showButtons ? 286 : 320, title, {
+    const heading = this.add.text(GAME.width / 2, resultVisible ? 130 : showButtons ? 286 : 320, title, {
       fontFamily: "Arial Black, sans-serif",
-      fontSize: showButtons ? "56px" : "46px",
+      fontSize: resultVisible ? (title.length > 16 ? "42px" : "50px") : showButtons ? "56px" : "46px",
       color: Phaser.Display.Color.IntegerToColor(color).rgba,
       stroke: "#07110e",
       strokeThickness: 7,
     }).setOrigin(0.5).setScrollFactor(0);
-    const description = this.add.text(GAME.width / 2, showButtons ? 366 : 395, subtitle, {
+    const description = this.add.text(GAME.width / 2, resultVisible ? 188 : showButtons ? 366 : 395, subtitle, {
       fontFamily: "Arial, sans-serif",
-      fontSize: "18px",
+      fontSize: resultVisible ? "16px" : "18px",
       color: "#d9e3dd",
     }).setOrigin(0.5).setScrollFactor(0);
     container.add([shade, panel, heading, description]);
 
+    if (resultVisible) this.addRoundResultContents(container, roundResult, color);
+
     if (showButtons) {
-      const primary = this.add.rectangle(GAME.width / 2 - 105, 447, 180, 48, 0x2b9e79, 1)
+      const buttonY = resultVisible ? 590 : 447;
+      const primary = this.add.rectangle(GAME.width / 2 - 105, buttonY, 180, 48, 0x2b9e79, 1)
         .setScrollFactor(0).setInteractive({ useHandCursor: true }).setData("isUI", true);
-      const secondary = this.add.rectangle(GAME.width / 2 + 105, 447, 180, 48, 0x1c332c, 1)
+      const secondary = this.add.rectangle(GAME.width / 2 + 105, buttonY, 180, 48, 0x1c332c, 1)
         .setStrokeStyle(1, 0x6c9584).setScrollFactor(0)
         .setInteractive({ useHandCursor: true }).setData("isUI", true);
-      const primaryText = this.add.text(GAME.width / 2 - 105, 447, buttonOptions.primaryLabel ?? "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" })
+      const primaryText = this.add.text(GAME.width / 2 - 105, buttonY, buttonOptions.primaryLabel ?? "다시 시작 (R)", { fontStyle: "bold", fontSize: "17px", color: "#07110e" })
         .setOrigin(0.5).setScrollFactor(0);
-      const secondaryText = this.add.text(GAME.width / 2 + 105, 447, buttonOptions.secondaryLabel ?? "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" })
+      const secondaryText = this.add.text(GAME.width / 2 + 105, buttonY, buttonOptions.secondaryLabel ?? "메인 화면", { fontStyle: "bold", fontSize: "17px", color: "#dbe7e0" })
         .setOrigin(0.5).setScrollFactor(0);
       primary.on("pointerdown", buttonOptions.primaryAction ?? (() => this.restartStage()));
       secondary.on("pointerdown", buttonOptions.secondaryAction ?? (() => this.scene.start("MenuScene")));
       container.add([primary, secondary, primaryText, secondaryText]);
     }
     return container;
+  }
+
+  addRoundResultContents(container, result, accentColor) {
+    const fixed = (object) => object.setScrollFactor(0);
+    const score = (value) => `+${ScoreSystem.formatScore(value)}`;
+    const gradeColors = {
+      S: "#ffe47f",
+      A: "#8fffd4",
+      B: "#8edbff",
+      C: "#e3e9dc",
+      D: "#ff9a8f",
+    };
+
+    const divider = fixed(this.add.rectangle(GAME.width / 2, 220, 720, 1, accentColor, 0.35));
+    const columnDivider = fixed(this.add.rectangle(548, 380, 1, 280, 0x709486, 0.28));
+    const rankLabel = fixed(this.add.text(385, 246, "TACTICAL RANK", {
+      fontFamily: "Arial, sans-serif", fontStyle: "bold", fontSize: "13px", color: "#789f8f", letterSpacing: 2,
+    }).setOrigin(0.5));
+    const grade = fixed(this.add.text(385, 332, result.grade, {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "104px",
+      color: gradeColors[result.grade],
+      stroke: "#06110e",
+      strokeThickness: 8,
+    }).setOrigin(0.5));
+    const totalLabel = fixed(this.add.text(385, 422, "TOTAL SCORE", {
+      fontFamily: "Arial, sans-serif", fontStyle: "bold", fontSize: "12px", color: "#789f8f", letterSpacing: 2,
+    }).setOrigin(0.5));
+    const totalScore = fixed(this.add.text(385, 459, ScoreSystem.formatScore(result.total), {
+      fontFamily: "Arial Black, sans-serif", fontSize: "31px", color: "#f0f5e8",
+    }).setOrigin(0.5));
+    const casualty = fixed(this.add.text(385, 501, `전사 ${result.stats.fallenAllies}명`, {
+      fontFamily: "Arial, sans-serif", fontSize: "13px", color: result.stats.fallenAllies ? "#e8aa96" : "#8ee7c4",
+    }).setOrigin(0.5));
+
+    const detailTitle = fixed(this.add.text(595, 247, "SCORE BREAKDOWN", {
+      fontFamily: "Arial, sans-serif", fontStyle: "bold", fontSize: "13px", color: "#8fc2ad", letterSpacing: 1,
+    }));
+    const detailStyle = {
+      fontFamily: "Arial, sans-serif", fontSize: "15px", color: "#dbe7e0",
+    };
+    const valueStyle = {
+      fontFamily: "Arial, sans-serif", fontStyle: "bold", fontSize: "15px", color: "#f6df91", align: "right",
+    };
+    const rows = [
+      ["클리어 보너스", score(result.breakdown.clear)],
+      [`생존 아군  ${result.stats.aliveAllies} / ${result.stats.participants}`, score(result.breakdown.survival)],
+      [`잔여 체력  영웅 ${result.stats.playerHpPercent}% · 부대 ${result.stats.averageAllyHpPercent}%`, score(result.breakdown.health)],
+      [`클리어 시간  ${ScoreSystem.formatTime(result.stats.elapsedSeconds)} / ${ScoreSystem.formatTime(result.stats.parTimeSec)}`, score(result.breakdown.time)],
+      [`구출한 동료  ${result.stats.rescued}명`, score(result.breakdown.rescue)],
+    ];
+    const detailObjects = [];
+    rows.forEach(([label, value], index) => {
+      const y = 286 + index * 48;
+      detailObjects.push(fixed(this.add.text(595, y, label, detailStyle)));
+      detailObjects.push(fixed(this.add.text(1010, y, value, valueStyle).setOrigin(1, 0)));
+    });
+    const timeNote = fixed(this.add.text(595, 526,
+      result.victory ? "기준 시간보다 빠를수록 시간 보너스가 증가합니다." : "패배 시 클리어·시간 보너스는 지급되지 않습니다.", {
+        fontFamily: "Arial, sans-serif", fontSize: "12px", color: "#78978a",
+      }));
+
+    container.add([
+      divider, columnDivider, rankLabel, grade, totalLabel, totalScore, casualty,
+      detailTitle, ...detailObjects, timeNote,
+    ]);
   }
 }
