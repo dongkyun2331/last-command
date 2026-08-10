@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LAST COMMAND — 게임 소개 및 설명서</title>
+  <style>
+    :root {
+      --ink: #10231d;
+      --paper: #f4f1e7;
+      --paper-2: #e9eadf;
+      --green: #2a9a76;
+      --green-dark: #0b3e32;
+      --mint: #78e0ba;
+      --gold: #dfbd62;
+      --red: #d85d50;
+      --blue: #4aa2be;
+      --muted: #61736b;
+      --line: rgba(16, 35, 29, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #c8ccc6; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      font-size: 10pt;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    @page { size: A4 portrait; margin: 0; }
+    .page {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto 8mm;
+      padding: 15mm 16mm 14mm;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(42, 154, 118, 0.035), transparent 34%),
+        var(--paper);
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(16, 35, 29, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 35, 29, 0.025) 1px, transparent 1px);
+      background-size: 14mm 14mm;
+      mask-image: linear-gradient(to bottom, black, transparent 45%);
+    }
+
+    .page-number, .doc-label {
+      position: absolute;
+      bottom: 7mm;
+      color: #75867e;
+      font-size: 7.5pt;
+      letter-spacing: 0.08em;
+      z-index: 3;
+    }
+    .page-number { right: 16mm; font-weight: 700; }
+    .doc-label { left: 16mm; }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h2 {
+      margin-bottom: 3mm;
+      font-size: 22pt;
+      line-height: 1.18;
+      letter-spacing: -0.04em;
+    }
+    h3 {
+      margin-bottom: 2mm;
+      font-size: 12pt;
+      letter-spacing: -0.025em;
+    }
+    p { margin-bottom: 3mm; }
+    strong { font-weight: 800; }
+    code {
+      padding: 0.25mm 1mm;
+      border-radius: 1mm;
+      background: #dfe4dc;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 8.5pt;
+    }
+
+    .section-kicker {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 2.5mm;
+      color: var(--green);
+      font-size: 8pt;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .lead {
+      color: #40554c;
+      font-size: 11pt;
+      line-height: 1.62;
+    }
+    .divider { height: 1px; margin: 4mm 0; background: var(--line); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.7mm; }
+    .card {
+      position: relative;
+      z-index: 2;
+      padding: 4mm;
+      border: 1px solid var(--line);
+      border-radius: 3mm;
+      background: rgba(255, 255, 255, 0.52);
+    }
+    .card.dark {
+      border-color: rgba(120, 224, 186, 0.24);
+      background: var(--green-dark);
+      color: #edf4ef;
+    }
+    .card.dark p { color: #c7dbd1; }
+    .card.gold { border-top: 1.3mm solid var(--gold); }
+    .card.green { border-top: 1.3mm solid var(--green); }
+    .card.red { border-top: 1.3mm solid var(--red); }
+    .card.blue { border-top: 1.3mm solid var(--blue); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 6mm;
+      padding: 1mm 2.4mm;
+      border: 1px solid rgba(42, 154, 118, 0.3);
+      border-radius: 10mm;
+      background: rgba(120, 224, 186, 0.12);
+      color: #176349;
+      font-size: 7.5pt;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 7mm;
+      height: 7mm;
+      margin-bottom: 2mm;
+      border-radius: 50%;
+      background: var(--green-dark);
+      color: var(--mint);
+      font-size: 8pt;
+      font-weight: 900;
+    }
+    .small { font-size: 8.3pt; line-height: 1.48; }
+    .muted { color: var(--muted); }
+    .no-margin { margin: 0; }
+
+    /* Cover */
+    .cover {
+      padding: 0;
+      background: #071713;
+      color: #f0f3eb;
+    }
+    .cover::before {
+      background-image:
+        linear-gradient(rgba(120, 224, 186, 0.065) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 224, 186, 0.065) 1px, transparent 1px);
+      background-size: 16mm 16mm;
+      mask-image: none;
+    }
+    .cover-glow {
+      position: absolute;
+      width: 155mm;
+      height: 155mm;
+      right: -55mm;
+      top: -48mm;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(62, 212, 160, 0.28), transparent 66%);
+    }
+    .cover-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      padding: 20mm 17mm 16mm;
+    }
+    .cover .eyebrow {
+      color: var(--mint);
+      font-size: 8pt;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+    }
+    .cover h1 {
+      margin: 14mm 0 2mm;
+      font-size: 45pt;
+      line-height: 0.94;
+      letter-spacing: -0.055em;
+    }
+    .cover .subtitle {
+      margin-bottom: 6mm;
+      color: #89e5c4;
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .cover .tagline {
+      width: 128mm;
+      color: #c8d7d0;
+      font-size: 12.5pt;
+      line-height: 1.6;
+    }
+    .cover-tags { display: flex; gap: 2mm; margin-top: 5mm; }
+    .cover .tag {
+      border-color: rgba(120, 224, 186, 0.3);
+      background: rgba(120, 224, 186, 0.08);
+      color: #a5efd4;
+    }
+    .battle-visual {
+      position: relative;
+      height: 80mm;
+      margin-top: 9mm;
+      border: 1px solid rgba(120, 224, 186, 0.18);
+      border-radius: 4mm;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 33% 55%, rgba(58, 181, 139, 0.18), transparent 32%),
+        radial-gradient(circle at 76% 43%, rgba(216, 93, 80, 0.15), transparent 30%),
+        linear-gradient(155deg, #112d24, #0a1815);
+    }
+    .battle-visual svg { width: 100%; height: 100%; display: block; }
+    .cover-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2mm;
+      margin-top: 5mm;
+    }
+    .cover-stat {
+      padding: 3mm;
+      border-left: 0.8mm solid var(--mint);
+      background: rgba(255,255,255,0.035);
+    }
+    .cover-stat b { display: block; color: #f4d887; font-size: 15pt; }
+    .cover-stat span { color: #93aaa0; font-size: 7.5pt; }
+    .cover-meta {
+      position: absolute;
+      left: 17mm;
+      right: 17mm;
+      bottom: 13mm;
+      display: flex;
+      justify-content: space-between;
+      padding-top: 4mm;
+      border-top: 1px solid rgba(255,255,255,0.13);
+      color: #738e82;
+      font-size: 7.5pt;
+      letter-spacing: 0.04em;
+    }
+
+    /* Overview */
+    .concept-banner {
+      display: grid;
+      grid-template-columns: 24mm 1fr;
+      gap: 4mm;
+      align-items: center;
+      margin: 4mm 0;
+      padding: 4mm;
+      border-radius: 3mm;
+      background: var(--green-dark);
+      color: white;
+    }
+    .concept-mark {
+      display: grid;
+      place-items: center;
+      width: 22mm;
+      height: 22mm;
+      border: 1px solid rgba(120,224,186,.45);
+      border-radius: 50%;
+      color: var(--mint);
+      font-size: 19pt;
+      font-weight: 900;
+    }
+    .mode-title { display: flex; align-items: center; gap: 2mm; }
+    .mode-title span {
+      color: var(--green);
+      font-size: 7pt;
+      font-weight: 900;
+      letter-spacing: .1em;
+    }
+    .stage-flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2mm;
+      margin-top: 3mm;
+    }
+    .stage {
+      position: relative;
+      min-height: 36mm;
+      padding: 3.2mm;
+      border-radius: 2mm;
+      background: #e3e7de;
+    }
+    .stage:not(:last-child)::after {
+      content: "›";
+      position: absolute;
+      top: 13mm;
+      right: -2.2mm;
+      z-index: 3;
+      color: var(--green);
+      font-size: 15pt;
+      font-weight: 900;
+    }
+    .stage b { display: block; margin-bottom: 1mm; font-size: 9pt; }
+    .stage em { color: var(--green); font-size: 7pt; font-style: normal; font-weight: 900; }
+    .stage p { margin: 1mm 0 0; color: #54665e; font-size: 7.5pt; line-height: 1.45; }
+
+    /* Gameplay */
+    .loop {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.4mm;
+      margin: 3mm 0 5mm;
+    }
+    .loop-step {
+      position: relative;
+      padding: 3mm 2mm;
+      min-height: 25mm;
+      border-radius: 2mm;
+      background: var(--green-dark);
+      color: white;
+      text-align: center;
+    }
+    .loop-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 11mm;
+      right: -2.2mm;
+      width: 3mm;
+      height: 1mm;
+      background: var(--gold);
+    }
+    .loop-step b { display: block; margin-top: 1mm; color: var(--mint); font-size: 8pt; }
+    .loop-step span { color: #b9cdc4; font-size: 6.7pt; }
+    .control-table { width: 100%; border-collapse: collapse; }
+    .control-table th, .control-table td {
+      padding: 2.2mm 2.6mm;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+    .control-table th {
+      color: var(--muted);
+      font-size: 7.5pt;
+      letter-spacing: 0.08em;
+    }
+    .control-table td:first-child { width: 37%; font-weight: 800; }
+    .key {
+      display: inline-block;
+      min-width: 6mm;
+      margin-right: 1mm;
+      padding: .5mm 1.4mm;
+      border: 1px solid #aab8b0;
+      border-bottom-width: .8mm;
+      border-radius: 1.2mm;
+      background: white;
+      color: #1b3329;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 7.5pt;
+      text-align: center;
+    }
+    .command-card { min-height: 42mm; }
+    .command-card .command-key { color: var(--green); font-size: 18pt; font-weight: 900; }
+    .command-card p { margin: 1mm 0; font-size: 8pt; }
+    .buff { color: #157956; font-weight: 800; }
+    .debuff { color: #b74c45; font-weight: 800; }
+
+    /* AI */
+    .ai-pipeline {
+      display: grid;
+      grid-template-columns: 1fr 16mm 1fr;
+      align-items: center;
+      gap: 3mm;
+      margin: 3mm 0 4mm;
+    }
+    .signal-list, .state-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.6mm;
+    }
+    .signal, .state {
+      padding: 2mm;
+      border-radius: 1.5mm;
+      background: #e2e7df;
+      color: #40574d;
+      font-size: 7.3pt;
+      font-weight: 700;
+      text-align: center;
+    }
+    .ai-core {
+      display: grid;
+      place-items: center;
+      width: 16mm;
+      height: 16mm;
+      border-radius: 50%;
+      background: var(--green-dark);
+      color: var(--mint);
+      font-size: 8pt;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.1;
+    }
+    .personality { min-height: 38mm; }
+    .personality b { display: block; margin-bottom: 1.4mm; font-size: 9pt; }
+    .personality p { margin: 0; font-size: 7.5pt; line-height: 1.48; }
+    .score-line {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.5mm;
+      margin-top: 2mm;
+    }
+    .score-item {
+      padding: 2.5mm 1.5mm;
+      border-radius: 1.6mm;
+      background: #e0e5dd;
+      text-align: center;
+    }
+    .score-item b { display: block; color: var(--green); font-size: 8pt; }
+    .score-item span { color: var(--muted); font-size: 6.6pt; }
+
+    /* Run */
+    .terminal {
+      margin: 2mm 0 3mm;
+      padding: 4mm;
+      border-radius: 2.5mm;
+      background: #071713;
+      color: #dcebe4;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 8.5pt;
+      line-height: 1.7;
+    }
+    .terminal .prompt { color: var(--mint); }
+    .steps { counter-reset: step; margin: 0; padding: 0; list-style: none; }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      min-height: 10mm;
+      padding: 1mm 0 2mm 10mm;
+      border-left: 1px solid #bad0c5;
+      color: #465a51;
+      font-size: 8.3pt;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: -3.5mm;
+      top: 0;
+      display: grid;
+      place-items: center;
+      width: 7mm;
+      height: 7mm;
+      border-radius: 50%;
+      background: var(--green);
+      color: white;
+      font-size: 7pt;
+      font-weight: 900;
+    }
+    .checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8mm 4mm; }
+    .check {
+      position: relative;
+      padding-left: 6mm;
+      color: #40544b;
+      font-size: 8pt;
+    }
+    .check::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-weight: 900;
+    }
+    .repo {
+      padding: 3mm 4mm;
+      border: 1px solid rgba(42,154,118,.36);
+      border-radius: 2mm;
+      background: rgba(120,224,186,.08);
+      color: #155a43;
+      font-size: 8.5pt;
+      font-weight: 800;
+    }
+
+    @media print {
+      html, body { background: transparent; }
+      .page { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page cover">
+    <div class="cover-glow"></div>
+    <div class="cover-content">
+      <div class="eyebrow">AI GAME COMPETITION · GAME INTRODUCTION</div>
+      <h1>LAST<br />COMMAND</h1>
+      <div class="subtitle">AI SQUAD BATTLE RPG</div>
+      <p class="tagline">AI 동료 병사들을 지휘하며 적 부대를 돌파하는<br /><strong>실시간 대규모 부대 RPG</strong></p>
+      <div class="cover-tags">
+        <span class="tag">HTML5</span>
+        <span class="tag">PHASER 3</span>
+        <span class="tag">STATIC WEB GAME</span>
+        <span class="tag">ORIGINAL IP</span>
+      </div>
+
+      <div class="battle-visual" aria-label="플레이어와 AI 부대가 적 지휘관에게 돌격하는 전술 도식">
+        <svg viewBox="0 0 900 370" role="img">
+          <defs>
+            <linearGradient id="pathGlow" x1="0" x2="1">
+              <stop offset="0" stop-color="#74e0ba" stop-opacity=".2" />
+              <stop offset="1" stop-color="#f2c768" stop-opacity=".8" />
+            </linearGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="6" /></filter>
+          </defs>
+          <path d="M90 285 C280 240, 390 125, 715 122" fill="none" stroke="#76dcb8" stroke-opacity=".16" stroke-width="72" />
+          <path d="M94 285 C290 235, 410 135, 710 124" fill="none" stroke="url(#pathGlow)" stroke-width="4" stroke-dasharray="12 12" />
+          <g fill="#56b996" opacity=".68">
+            <circle cx="165" cy="248" r="15"/><circle cx="204" cy="283" r="13"/><circle cx="226" cy="220" r="13"/>
+            <circle cx="268" cy="252" r="12"/><circle cx="295" cy="195" r="13"/><circle cx="330" cy="228" r="12"/>
+            <circle cx="352" cy="169" r="12"/><circle cx="395" cy="201" r="11"/><circle cx="427" cy="151" r="11"/>
+          </g>
+          <g fill="none" stroke="#9ff0d2" stroke-opacity=".45" stroke-width="2">
+            <circle cx="165" cy="248" r="22"/><circle cx="226" cy="220" r="20"/><circle cx="295" cy="195" r="20"/>
+          </g>
+          <circle cx="105" cy="287" r="28" fill="#e6c45f" filter="url(#glow)" opacity=".28"/>
+          <circle cx="105" cy="287" r="19" fill="#e6c45f" />
+          <path d="M98 288 l9 -15 l9 15 l-9 18z" fill="#17372c" />
+          <text x="69" y="332" fill="#f1d77c" font-size="17" font-weight="700">HERO</text>
+          <g fill="#c64f47" opacity=".82">
+            <circle cx="626" cy="100" r="13"/><circle cx="666" cy="80" r="12"/><circle cx="674" cy="144" r="13"/>
+            <circle cx="720" cy="72" r="12"/><circle cx="731" cy="158" r="12"/><circle cx="768" cy="105" r="13"/>
+            <circle cx="804" cy="147" r="11"/><circle cx="818" cy="73" r="11"/>
+          </g>
+          <circle cx="728" cy="112" r="47" fill="none" stroke="#efc45e" stroke-opacity=".24" stroke-width="12"/>
+          <circle cx="728" cy="112" r="29" fill="#7e2931" stroke="#f0c868" stroke-width="4" />
+          <path d="M708 85 l20 -18 l20 18" fill="#f0c868" />
+          <text x="665" y="213" fill="#f1c767" font-size="15" font-weight="700">COMMANDER</text>
+          <text x="90" y="48" fill="#76dcb8" font-size="15" letter-spacing="3">SQUAD LINK ACTIVE</text>
+          <text x="690" y="338" fill="#9bb0a7" font-size="13">REAL-TIME BATTLEFIELD</text>
+        </svg>
+      </div>
+
+      <div class="cover-stats">
+        <div class="cover-stat"><b>1</b><span>직접 조작 영웅</span></div>
+        <div class="cover-stat"><b>8 → 20</b><span>AI 동료 병력</span></div>
+        <div class="cover-stat"><b>4</b><span>캠페인 전장</span></div>
+        <div class="cover-stat"><b>3–5분</b><span>스테이지당 전투</span></div>
+      </div>
+
+      <div class="cover-meta">
+        <span>게임 소개 및 플레이·실행 설명서</span>
+        <span>2026. 08 · PROTOTYPE BUILD</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="page">
+    <div class="section-kicker">01 · GAME OVERVIEW</div>
+    <h2>게임 개요</h2>
+    <p class="lead"><strong>LAST COMMAND</strong>는 한 명의 영웅을 직접 움직이면서, 서로 다른 성향을 가진 다수의 AI 동료에게 부대 명령을 내려 적진을 돌파하는 오리지널 탑다운 실시간 전투 RPG입니다.</p>
+
+    <div class="concept-banner">
+      <div class="concept-mark">AI</div>
+      <div>
+        <h3 class="no-margin">직접 조작의 즉시성 + 자율 부대 AI의 전술성</h3>
+        <p class="small no-margin">플레이어는 이동과 명령에 집중하고, 병사들은 체력·거리·병력 밀도·성향·현재 명령을 바탕으로 추적, 후퇴, 보호, 집결을 스스로 판단합니다.</p>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card green">
+        <span class="num">1</span>
+        <h3>대규모 실시간 전투</h3>
+        <p class="small no-margin">30~50개 유닛이 같은 전장에서 충돌합니다. 근접한 적은 자동으로 공격하며 유닛 간 겹침을 억제해 전투 대형을 읽기 쉽게 유지합니다.</p>
+      </div>
+      <div class="card gold">
+        <span class="num">2</span>
+        <h3>세 가지 부대 명령</h3>
+        <p class="small no-margin">돌격·집결·방어를 즉시 전환합니다. 명령은 단순 이동 지시가 아니라 공격력, 방어력, 이동 속도와 AI 판단 우선순위에 영향을 줍니다.</p>
+      </div>
+      <div class="card blue">
+        <span class="num">3</span>
+        <h3>생존 부대 계승</h3>
+        <p class="small no-margin">캠페인에서 생존한 동료의 성향과 HP가 다음 지역으로 이어집니다. 전장 구출을 통해 병력을 최대 20명까지 확장할 수 있습니다.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="grid-2">
+      <div class="card dark">
+        <div class="mode-title"><span>MODE 01</span><h3 class="no-margin">STORY CAMPAIGN</h3></div>
+        <p class="small">끊어진 지휘 신호를 따라 네 지역을 차례로 돌파합니다. 전장마다 목표가 달라지고, 생존 부대와 최고 점수가 브라우저에 자동 저장됩니다.</p>
+        <span class="tag">진행 저장</span> <span class="tag">부대 계승</span>
+      </div>
+      <div class="card">
+        <div class="mode-title"><span>MODE 02</span><h3 class="no-margin">QUICK BATTLE</h3></div>
+        <p class="small">세 지휘관을 격파하는 3~5분 독립 전투입니다. 캠페인 진행 없이 자동전투, AI 성향, 부대 명령과 점수 시스템을 바로 체험할 수 있습니다.</p>
+        <span class="tag">즉시 시작</span> <span class="tag">3~5분</span>
+      </div>
+    </div>
+
+    <h3 style="margin-top:5mm;">캠페인 작전 경로</h3>
+    <div class="stage-flow">
+      <div class="stage"><em>MISSION 01</em><b>엠버필드 외곽</b><p>생존자 2명 구출<br />외곽 지휘관 격파</p></div>
+      <div class="stage"><em>MISSION 02</em><b>붕괴한 협곡</b><p>신호 거점 진입<br />35초간 증원 방어</p></div>
+      <div class="stage"><em>MISSION 03</em><b>침묵한 중계소</b><p>분산된 방해 장치<br />3개 직접 파괴</p></div>
+      <div class="stage"><em>FINAL MISSION</em><b>루멘폴 최종선</b><p>봉쇄 지휘관과<br />3단계 총지휘관 격파</p></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:4mm;">
+      <div class="card green"><h3>승리 조건</h3><p class="small no-margin">현재 전장의 구출·방어·장치 파괴·지휘관 격파 목표를 완료하면 라운드가 종료되고 전술 점수를 획득합니다.</p></div>
+      <div class="card red"><h3>패배 조건</h3><p class="small no-margin">직접 조작하는 영웅의 HP가 0이 되면 게임 오버입니다. 패배 시에도 생존 병력과 잔여 체력에 따른 결과 점수가 표시됩니다.</p></div>
+    </div>
+
+    <span class="doc-label">LAST COMMAND · 게임 소개 및 설명서</span><span class="page-number">02 / 05</span>
+  </section>
+
+  <section class="page">
+    <div class="section-kicker">02 · HOW TO PLAY</div>
+    <h2>플레이 방법</h2>
+    <p class="lead">영웅으로 진로를 열고, 전황에 맞춰 부대 명령을 바꾸며, 생존자와 중립 NPC를 합류시켜 최종 목표까지 전진합니다. 공격 범위에 들어온 적은 자동 공격하므로 이동과 지휘에 집중할 수 있습니다.</p>
+
+    <h3>한 라운드의 기본 흐름</h3>
+    <div class="loop">
+      <div class="loop-step"><span>STEP 01</span><b>영웅 이동</b><span>아군 대형 동행</span></div>
+      <div class="loop-step"><span>STEP 02</span><b>적 부대 발견</b><span>자동 표적 탐색</span></div>
+      <div class="loop-step"><span>STEP 03</span><b>명령 선택</b><span>돌격·집결·방어</span></div>
+      <div class="loop-step"><span>STEP 04</span><b>실시간 교전</b><span>AI 개별 판단</span></div>
+      <div class="loop-step"><span>STEP 05</span><b>동료 구출</b><span>최대 20명 확장</span></div>
+      <div class="loop-step"><span>STEP 06</span><b>목표 완료</b><span>점수·등급 획득</span></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>전투 조작</h3>
+        <table class="control-table">
+          <thead><tr><th>입력</th><th>동작</th></tr></thead>
+          <tbody>
+            <tr><td><span class="key">WASD</span><span class="key">방향키</span></td><td>영웅 이동</td></tr>
+            <tr><td><span class="key">AUTO</span></td><td>범위 안의 가장 가까운 적 자동 공격</td></tr>
+            <tr><td><span class="key">1</span><span class="key">2</span><span class="key">3</span></td><td>돌격·집결·방어 명령</td></tr>
+            <tr><td><span class="key">R</span></td><td>현재 전장 재시작</td></tr>
+            <tr><td><span class="key">ESC</span></td><td>일시정지 / 계속하기</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>전술 지도 조작</h3>
+        <table class="control-table">
+          <thead><tr><th>입력</th><th>동작</th></tr></thead>
+          <tbody>
+            <tr><td><span class="key">←</span><span class="key">→</span></td><td>해금된 작전 지역 선택</td></tr>
+            <tr><td><span class="key">A</span><span class="key">D</span></td><td>이전 / 다음 지역 이동</td></tr>
+            <tr><td><span class="key">ENTER</span></td><td>현재 임무 진입</td></tr>
+            <tr><td><span class="key">SPACE</span></td><td>현재 임무 진입</td></tr>
+            <tr><td><span class="key">ESC</span></td><td>메인 화면 복귀</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 style="margin-top:5mm;">부대 명령</h3>
+    <div class="grid-3">
+      <div class="card command-card red">
+        <div class="command-key">1</div><h3>돌격 · ASSAULT</h3>
+        <p>가장 가까운 적을 적극적으로 추격합니다.</p>
+        <p><span class="buff">공격력 +20%</span><br /><span class="debuff">방어력 -10%</span></p>
+      </div>
+      <div class="card command-card gold">
+        <div class="command-key">2</div><h3>집결 · REGROUP</h3>
+        <p>전투로 흩어진 아군이 영웅 주변으로 돌아옵니다.</p>
+        <p><span class="buff">대열 회복</span><br />과도한 추격 억제</p>
+      </div>
+      <div class="card command-card green">
+        <div class="command-key">3</div><h3>방어 · DEFEND</h3>
+        <p>영웅 주변에서 방어적으로 교전합니다.</p>
+        <p><span class="buff">방어력 +30%</span><br /><span class="debuff">이동 속도 -20%</span></p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:4mm;">
+      <div class="card dark">
+        <h3>추천 전술</h3>
+        <p class="small no-margin"><strong>돌격</strong>으로 교전을 시작하고, 아군 체력이 떨어지거나 대형이 길게 늘어지면 <strong>집결</strong>로 재정비합니다. 지휘관 오라 안에서 버티거나 거점을 지킬 때는 <strong>방어</strong>가 효과적입니다.</p>
+      </div>
+      <div class="card">
+        <h3>모바일 플레이</h3>
+        <p class="small no-margin">터치 기기에서는 화면 방향 버튼으로 이동하고 하단 명령 버튼을 누릅니다. 공격은 PC와 모바일 모두 자동이며 화면 크기에 맞춰 게임 캔버스가 비율을 유지해 축소됩니다.</p>
+      </div>
+    </div>
+
+    <span class="doc-label">LAST COMMAND · 게임 소개 및 설명서</span><span class="page-number">03 / 05</span>
+  </section>
+
+  <section class="page">
+    <div class="section-kicker">03 · AI &amp; SCORING</div>
+    <h2>AI 동료와 전술 점수</h2>
+    <p class="lead">동료는 무작위 이동이 아니라 전장 정보를 주기적으로 인식하고 상태를 다시 결정합니다. 동일한 명령 아래에서도 성향과 체력 상황에 따라 돌격, 후퇴, 보호 행동이 다르게 나타납니다.</p>
+
+    <h3>AI 의사결정 구조</h3>
+    <div class="ai-pipeline">
+      <div class="signal-list">
+        <div class="signal">자신의 HP</div><div class="signal">플레이어 거리</div>
+        <div class="signal">가장 가까운 적</div><div class="signal">주변 아군 수</div>
+        <div class="signal">주변 적군 수</div><div class="signal">현재 부대 명령</div>
+        <div class="signal">개별 성향</div><div class="signal">저체력 동료</div>
+      </div>
+      <div class="ai-core">AI<br />CORE</div>
+      <div class="state-list">
+        <div class="state">FOLLOW</div><div class="state">ATTACK</div>
+        <div class="state">RETREAT</div><div class="state">PROTECT</div>
+        <div class="state">REGROUP</div><div class="state">DEFEND</div>
+      </div>
+    </div>
+    <p class="small muted">판단은 병사마다 약 200~500ms 간격으로 분산 실행됩니다. 공간 해시(Spatial Hash)로 가까운 유닛만 검색하여 30~50개 유닛이 동시에 등장해도 전체 객체 쌍을 매번 비교하지 않습니다.</p>
+
+    <div class="grid-4">
+      <div class="card personality red"><b>Aggressive</b><p>저체력에서도 공격을 지속할 가능성이 높고 가까운 적을 적극적으로 추적합니다.</p></div>
+      <div class="card personality gold"><b>Cautious</b><p>HP가 30% 이하가 되면 영웅 주변으로 후퇴해 생존을 우선합니다.</p></div>
+      <div class="card personality green"><b>Protector</b><p>저체력 동료를 찾아 이동하고 그 주변의 적을 우선 공격합니다.</p></div>
+      <div class="card personality blue"><b>Coward</b><p>HP가 50% 이하이면 확률적으로 후방으로 물러나 전열을 이탈합니다.</p></div>
+    </div>
+
+    <div class="divider"></div>
+    <h3>라운드 결과와 점수</h3>
+    <p>승리 또는 패배 시 전투 결과 화면에서 총점과 <strong>S~D 전술 등급</strong>, 항목별 획득 점수를 확인할 수 있습니다. 캠페인은 각 지역 최고 점수와 최고 점수 합계를 자동 저장합니다.</p>
+    <div class="score-line">
+      <div class="score-item"><b>클리어</b><span>임무 성공 보너스</span></div>
+      <div class="score-item"><b>생존</b><span>살아남은 아군 수</span></div>
+      <div class="score-item"><b>잔여 HP</b><span>영웅·부대 체력</span></div>
+      <div class="score-item"><b>시간</b><span>기준 시간 대비 속도</span></div>
+      <div class="score-item"><b>구출</b><span>합류시킨 동료 수</span></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:4mm;">
+      <div class="card gold">
+        <h3>적 지휘관 오라</h3>
+        <p class="small no-margin">일반 지휘관은 주변 적군의 공격력을 25% 강화합니다. 총지휘관은 HP 구간에 따라 오라 확대, 증원 호출, 공격 속도 강화와 영웅 우선 추적을 단계적으로 사용합니다.</p>
+      </div>
+      <div class="card green">
+        <h3>확장 가능한 AI 구조</h3>
+        <p class="small no-margin">인식 스냅샷, 상태 결정, 행동 실행이 분리되어 있습니다. 향후 상태 결정 모듈만 행동 트리, 강화학습 정책 또는 LLM 기반 지휘 모델로 교체할 수 있습니다.</p>
+      </div>
+    </div>
+
+    <div class="card dark" style="margin-top:4mm;">
+      <h3>게임의 오리지널리티</h3>
+      <p class="small no-margin">다수 동료를 이끌고 실시간으로 전투한다는 장르적 아이디어를 바탕으로 제작했으며, 세계관·캐릭터·명칭·스토리·맵·전투 규칙·UI·그래픽은 모두 본 프로젝트를 위해 새롭게 설계했습니다.</p>
+    </div>
+
+    <span class="doc-label">LAST COMMAND · 게임 소개 및 설명서</span><span class="page-number">04 / 05</span>
+  </section>
+
+  <section class="page">
+    <div class="section-kicker">04 · RUN &amp; DEPLOY</div>
+    <h2>실행 및 배포 방법</h2>
+    <p class="lead">별도 백엔드와 빌드 과정이 없는 정적 웹게임입니다. 프로젝트 파일을 정적 웹 서버로 제공하면 PC Chrome과 모바일 브라우저에서 실행할 수 있습니다.</p>
+
+    <div class="grid-2">
+      <div class="card green">
+        <h3>권장 실행 환경</h3>
+        <div class="checklist">
+          <div class="check">PC Chrome 최신 버전</div>
+          <div class="check">1280×720 이상 화면</div>
+          <div class="check">키보드 또는 터치 입력</div>
+          <div class="check">최초 실행 시 인터넷 연결</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>기술 스택</h3>
+        <div class="checklist">
+          <div class="check">HTML5 / CSS3</div>
+          <div class="check">JavaScript ES Modules</div>
+          <div class="check">Phaser 3.90 CDN</div>
+          <div class="check">Arcade Physics</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:5mm;">로컬 실행</h3>
+    <ol class="steps">
+      <li>GitHub 저장소를 다운로드하거나 clone한 뒤 프로젝트 루트로 이동합니다.</li>
+      <li>ES Module을 안정적으로 불러오기 위해 아래 명령으로 정적 서버를 실행합니다.</li>
+    </ol>
+    <div class="terminal"><span class="prompt">$</span> cd last-command<br /><span class="prompt">$</span> python3 -m http.server 8080</div>
+    <ol class="steps" start="3" style="counter-reset:step 2;">
+      <li>Chrome에서 <code>http://localhost:8080</code>을 열고 메인 화면의 게임 모드를 선택합니다.</li>
+    </ol>
+
+    <h3 style="margin-top:4mm;">GitHub Pages 배포</h3>
+    <div class="grid-2">
+      <div class="card">
+        <ol class="steps">
+          <li>프로젝트를 GitHub 저장소 기본 브랜치에 push합니다.</li>
+          <li>저장소의 <strong>Settings → Pages</strong>로 이동합니다.</li>
+          <li>Source를 <strong>Deploy from a branch</strong>로 선택합니다.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <ol class="steps" style="counter-reset:step 3;">
+          <li>배포 브랜치 <code>main</code>과 폴더 <code>/(root)</code>를 선택합니다.</li>
+          <li>저장 후 GitHub가 안내하는 Pages 주소로 접속합니다.</li>
+          <li>별도 Node.js 서버나 데이터베이스 없이 바로 플레이합니다.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card dark" style="margin-top:4mm;">
+      <h3>정적 배포 구성</h3>
+      <p class="small no-margin"><code>index.html</code>이 Phaser 3를 CDN으로 불러오고, 장면·유닛·AI·전투·캠페인·점수 모듈은 모두 상대경로 ES Module로 연결됩니다. 진행 상황과 최고 점수는 브라우저 <code>localStorage</code>에 저장됩니다.</p>
+    </div>
+
+    <h3 style="margin-top:4mm;">제출 및 확인 정보</h3>
+    <div class="repo">GitHub Repository · https://github.com/dongkyun2331/last-command</div>
+    <div class="grid-2" style="margin-top:3mm;">
+      <div class="card">
+        <h3>외부 에셋 및 라이선스</h3>
+        <p class="small no-margin">본 프로토타입은 외부 상용 게임 에셋을 사용하지 않고 Phaser Graphics 기반의 자체 생성 그래픽을 사용했습니다. Phaser 3는 MIT License로 배포됩니다.</p>
+      </div>
+      <div class="card">
+        <h3>실행 체크리스트</h3>
+        <div class="checklist">
+          <div class="check">메인 화면 진입</div><div class="check">영웅 이동</div>
+          <div class="check">자동 공격</div><div class="check">1·2·3 명령</div>
+          <div class="check">승리·패배 결과</div><div class="check">캠페인 저장</div>
+        </div>
+      </div>
+    </div>
+
+    <span class="doc-label">LAST COMMAND · 게임 소개 및 설명서</span><span class="page-number">05 / 05</span>
+  </section>
+</body>
+</html>
