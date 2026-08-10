@@ -1,0 +1,69 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  background: #07110f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(56, 96, 69, 0.2), transparent 38%),
+    #07110f;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  touch-action: none;
+}
+
+.game-shell {
+  position: relative;
+  width: min(100vw, 177.78vh);
+  height: min(100vh, 56.25vw);
+  min-height: 240px;
+  overflow: hidden;
+  background: #0b1714;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.55);
+}
+
+#game-container,
+#game-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#game-container canvas {
+  outline: none;
+}
+
+.load-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: min(90%, 520px);
+  margin: 0;
+  padding: 18px 22px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #c9675f;
+  border-radius: 10px;
+  color: #ffe8e5;
+  text-align: center;
+  background: rgba(48, 15, 15, 0.94);
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .game-shell {
+    width: 100vw;
+    height: 100dvh;
+  }
+}
