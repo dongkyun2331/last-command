@@ -116,7 +116,7 @@ export class MenuScene extends Phaser.Scene {
       color: "#eff6e8",
     }).setOrigin(0.5);
     const body = this.add.text(GAME.width / 2, 335,
-      "WASD / 방향키   이동\n마우스 클릭 / SPACE   영웅 공격\n\n1  돌격  ·  공격력 +20%, 방어력 -10%\n2  집결  ·  영웅 주변으로 복귀\n3  방어  ·  방어력 +30%, 이동 속도 -20%\n\n전장의 적 지휘관 3명을 모두 쓰러뜨리세요.\n포로에게 접근하면 최대 20명까지 자동으로 합류합니다.\nR 재시작   ·   ESC 일시정지", {
+      "WASD / 방향키   이동\n공격 범위의 가장 가까운 적 자동공격\n\n1  돌격  ·  공격력 +20%, 방어력 -10%\n2  집결  ·  영웅 주변으로 복귀\n3  방어  ·  방어력 +30%, 이동 속도 -20%\n\n전장의 적 지휘관 3명을 모두 쓰러뜨리세요.\n포로에게 접근하면 최대 20명까지 자동으로 합류합니다.\nR 재시작   ·   ESC 일시정지", {
         fontFamily: "Arial, sans-serif",
         fontSize: "20px",
         color: "#d4e2dc",

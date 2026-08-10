@@ -17,8 +17,11 @@ export class BaseUnit extends Phaser.Physics.Arcade.Sprite {
 
     this.setDepth(10);
     this.setCollideWorldBounds(true);
-    this.body.setSize(this.width * 0.66, this.height * 0.7);
-    this.body.setOffset(this.width * 0.17, this.height * 0.23);
+    // Keep the collision footprint close to the visible torso. This gives melee
+    // units room for attack effects while preventing opposing sprites from being
+    // drawn on top of one another in a dense formation.
+    this.body.setSize(this.width * 0.84, this.height * 0.8);
+    this.body.setOffset(this.width * 0.08, this.height * 0.16);
 
     this.hpBack = scene.add.rectangle(x, y - 29, 32, 4, 0x101614, 0.9).setDepth(30);
     this.hpFill = scene.add.rectangle(x - 15, y - 29, 30, 2, 0x72e58d, 1)

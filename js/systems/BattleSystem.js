@@ -13,6 +13,10 @@ export class BattleSystem {
       this.nextAuraUpdateAt = time + 420;
     }
 
+    // The hero uses the same real-time melee loop as AI soldiers. Entering attack
+    // range is the only trigger; no key or pointer input is required.
+    this.playerAutoAttack(player, time);
+
     for (const ally of allies) {
       if (!ally.active || !ally.target?.active) continue;
       const combatState = [AI_STATE.ATTACK, AI_STATE.PROTECT, AI_STATE.DEFEND].includes(ally.aiState);
@@ -57,35 +61,23 @@ export class BattleSystem {
     return true;
   }
 
-  playerAttack(player, direction, time) {
+  playerAutoAttack(player, time) {
     if (!player.active || time < player.nextAttackAt) return false;
-    player.nextAttackAt = time + player.attackCooldown;
-
-    const aim = direction.clone();
-    if (aim.lengthSq() < 0.01) aim.copy(player.lastDirection);
-    aim.normalize();
-
-    let selected = null;
-    let selectedDistance = Infinity;
-    for (const enemy of this.spatialHash.queryRadius(
+    const selected = this.spatialHash.nearest(
       player.x,
       player.y,
       player.attackRange,
       (unit) => unit.faction === "enemy",
-    )) {
-      const toEnemy = new Phaser.Math.Vector2(enemy.x - player.x, enemy.y - player.y);
-      const distance = toEnemy.length();
-      if (distance > 0 && toEnemy.normalize().dot(aim) >= 0.22 && distance < selectedDistance) {
-        selected = enemy;
-        selectedDistance = distance;
-      }
-    }
+    );
+    if (!selected) return false;
 
-    this.scene.spawnPlayerSlash(player, aim, Boolean(selected));
-    if (selected) {
-      selected.takeDamage(player.damage * Phaser.Math.FloatBetween(0.95, 1.08), player);
-      this.scene.spawnStrike(player, selected, 0xf9eea8);
-    }
+    player.nextAttackAt = time + player.attackCooldown;
+    const aim = new Phaser.Math.Vector2(selected.x - player.x, selected.y - player.y).normalize();
+    player.lastDirection.copy(aim);
+    player.setFlipX(aim.x < 0);
+    this.scene.spawnPlayerSlash(player, aim, true);
+    selected.takeDamage(player.damage * Phaser.Math.FloatBetween(0.95, 1.08), player);
+    this.scene.spawnStrike(player, selected, 0xf9eea8);
     return true;
   }
 

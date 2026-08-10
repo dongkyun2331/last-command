@@ -33,6 +33,13 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.obstacles);
     this.physics.add.collider(this.allyGroup, this.obstacles);
     this.physics.add.collider(this.enemyGroup, this.obstacles);
+    // Arcade Physics prevents units from passing through opposing formations.
+    // Same-faction colliders reinforce the lightweight separation steering so a
+    // dense melee still keeps readable silhouettes instead of stacked sprites.
+    this.physics.add.collider(this.player, this.enemyGroup);
+    this.physics.add.collider(this.allyGroup, this.enemyGroup);
+    this.physics.add.collider(this.allyGroup, this.allyGroup);
+    this.physics.add.collider(this.enemyGroup, this.enemyGroup);
 
     this.spatialHash = new SpatialHash(180);
     this.aiSystem = new AISystem(this, this.spatialHash);
@@ -255,7 +262,6 @@ export class GameScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
-      attack: Phaser.Input.Keyboard.KeyCodes.SPACE,
       assault: Phaser.Input.Keyboard.KeyCodes.ONE,
       regroup: Phaser.Input.Keyboard.KeyCodes.TWO,
       defend: Phaser.Input.Keyboard.KeyCodes.THREE,
@@ -263,20 +269,12 @@ export class GameScene extends Phaser.Scene {
       pause: Phaser.Input.Keyboard.KeyCodes.ESC,
     });
 
-    this.keys.attack.on("down", () => this.attackInDirection(this.player.lastDirection));
     this.keys.assault.on("down", () => this.setCommand(COMMAND.ASSAULT));
     this.keys.regroup.on("down", () => this.setCommand(COMMAND.REGROUP));
     this.keys.defend.on("down", () => this.setCommand(COMMAND.DEFEND));
     this.keys.restart.on("down", () => this.scene.restart());
     this.keys.pause.on("down", () => this.togglePause());
 
-    this.input.on("pointerdown", (pointer, currentlyOver) => {
-      if (this.gameEnded || this.isPaused) return;
-      if (currentlyOver.some((item) => item.getData("isUI"))) return;
-      const point = pointer.positionToCamera(this.cameras.main);
-      const direction = new Phaser.Math.Vector2(point.x - this.player.x, point.y - this.player.y);
-      this.attackInDirection(direction);
-    });
   }
 
   setupCamera() {
@@ -397,15 +395,6 @@ export class GameScene extends Phaser.Scene {
     makeDirection(28, 611, "◀", "left");
     makeDirection(164, 611, "▶", "right");
 
-    const attack = this.add.circle(1180, 610, 48, 0x7d2828, 0.74)
-      .setStrokeStyle(3, 0xffad8a, 0.75)
-      .setScrollFactor(0)
-      .setDepth(depth + 20)
-      .setInteractive()
-      .setData("isUI", true);
-    this.add.text(1180, 610, "ATTACK", { fontStyle: "bold", fontSize: "14px", color: "#fff0e8" })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(depth + 21);
-    attack.on("pointerdown", () => this.attackInDirection(this.player.lastDirection));
   }
 
   showOpeningGuide() {
@@ -414,7 +403,7 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(1500);
     const text = this.add.text(GAME.width / 2, 305,
-      "MOVE  ·  WASD / 방향키\nATTACK  ·  마우스 클릭 / SPACE\nCOMMAND  ·  1 돌격   2 집결   3 방어\n\n근처의 포로를 구하고 지휘관 3명을 격파하세요", {
+      "MOVE  ·  WASD / 방향키\nATTACK  ·  범위 안의 적 자동공격\nCOMMAND  ·  1 돌격   2 집결   3 방어\n\n근처의 포로를 구하고 지휘관 3명을 격파하세요", {
         fontFamily: "Arial, sans-serif",
         fontSize: "20px",
         color: "#e7f0e8",
@@ -441,6 +430,10 @@ export class GameScene extends Phaser.Scene {
     this.player.updateMovement(input);
 
     this.spatialHash.rebuild([this.allies, this.enemies, [this.player]]);
+    this.enforceUnitSpacing();
+    // Spacing can move a unit across a cell boundary, so refresh the index before
+    // AI perception and automatic target acquisition use it.
+    this.spatialHash.rebuild([this.allies, this.enemies, [this.player]]);
     this.aiSystem.updateAllies(time, this.allies, this.player, this.command);
     this.aiSystem.updateEnemies(time, this.enemies, this.player);
     this.battleSystem.update(time, this.player, this.allies, this.enemies, this.command);
@@ -457,9 +450,43 @@ export class GameScene extends Phaser.Scene {
     this.updateHUD();
   }
 
-  attackInDirection(direction) {
-    if (this.gameEnded || this.isPaused) return;
-    this.battleSystem.playerAttack(this.player, direction, this.time.now);
+  enforceUnitSpacing() {
+    const units = [this.player, ...this.allies, ...this.enemies].filter((unit) => unit.active);
+    const order = new Map(units.map((unit, index) => [unit, index]));
+
+    for (const unit of units) {
+      const unitIndex = order.get(unit);
+      const neighbors = this.spatialHash.queryRadius(unit.x, unit.y, 72, (other) => {
+        if (other === unit || order.get(other) <= unitIndex) return false;
+        // Only pairs involving an enemy need hard spacing. Allies retain their
+        // softer steering formation and never block the directly controlled hero.
+        return unit.faction === "enemy" || other.faction === "enemy";
+      });
+
+      for (const other of neighbors) {
+        const minimumDistance = unit.displayWidth * 0.43 + other.displayWidth * 0.43 + 2;
+        let dx = other.x - unit.x;
+        let dy = other.y - unit.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance >= minimumDistance) continue;
+
+        if (distance < 0.01) {
+          const angle = ((unitIndex + 1) * 2.399) % (Math.PI * 2);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          distance = 1;
+        }
+        const correction = (minimumDistance - distance) / 2;
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        const unitX = Phaser.Math.Clamp(unit.x - normalX * correction, 24, GAME.worldWidth - 24);
+        const unitY = Phaser.Math.Clamp(unit.y - normalY * correction, 24, GAME.worldHeight - 24);
+        const otherX = Phaser.Math.Clamp(other.x + normalX * correction, 24, GAME.worldWidth - 24);
+        const otherY = Phaser.Math.Clamp(other.y + normalY * correction, 24, GAME.worldHeight - 24);
+        unit.body.reset(unitX, unitY);
+        other.body.reset(otherX, otherY);
+      }
+    }
   }
 
   setCommand(command) {
