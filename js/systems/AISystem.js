@@ -255,12 +255,20 @@ export class AISystem {
       if (!enemy.active) continue;
 
       if (time >= enemy.nextDecisionAt) {
-        const target = this.spatialHash.nearest(
-          enemy.x,
-          enemy.y,
-          enemy.detectionRange,
-          (unit) => unit.faction === "ally" || unit.faction === "player",
-        );
+        // The supreme commander changes policy in its final phase and deliberately
+        // hunts the hero. Other enemies continue choosing the locally nearest
+        // target, so this boss rule remains isolated from normal squad AI.
+        let target = null;
+        if (enemy.isBoss && enemy.bossPhase >= 3 && enemy.distanceTo(player) <= enemy.detectionRange) {
+          target = player;
+        } else {
+          target = this.spatialHash.nearest(
+            enemy.x,
+            enemy.y,
+            enemy.detectionRange,
+            (unit) => unit.faction === "ally" || unit.faction === "player",
+          );
+        }
 
         if (target) {
           enemy.target = target;

@@ -89,7 +89,7 @@ export class BattleSystem {
         continue;
       }
       enemy.isCommanderBuffed = commanders.some(
-        (commander) => commander.distanceTo(enemy) <= GAME.commanderAuraRadius,
+        (commander) => commander.distanceTo(enemy) <= (commander.auraRadius ?? GAME.commanderAuraRadius),
       );
       enemy.setAlpha(enemy.isCommanderBuffed ? 1 : 0.92);
     }

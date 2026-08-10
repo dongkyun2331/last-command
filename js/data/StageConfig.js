@@ -16,6 +16,7 @@ export const QUICK_STAGE = {
   titleKo: "엠버필드 전면전",
   description: "세 지휘관을 신속하게 격파하는 3~5분 독립 전투입니다.",
   objective: "적 지휘관 3명을 모두 격파하라",
+  objectiveConfig: { type: "eliminate" },
   playerStart: [310, 805],
   tutorial: true,
   field: {
@@ -54,7 +55,8 @@ export const STORY_STAGES = [
     title: "EMBERFIELD OUTSKIRTS",
     titleKo: "엠버필드 외곽",
     description: "끊어진 지휘망의 첫 신호가 발견됐다. 포로를 구출하고 외곽 봉쇄를 해제하라.",
-    objective: "외곽 지휘관을 격파하고 생존자를 구출하라",
+    objective: "생존자 2명 이상을 구출하고 외곽 지휘관을 격파하라",
+    objectiveConfig: { type: "rescue-eliminate", rescueRequired: 2 },
     playerStart: [260, 810],
     tutorial: true,
     field: {
@@ -79,8 +81,18 @@ export const STORY_STAGES = [
     campaignIndex: 1,
     title: "THE BROKEN PASS",
     titleKo: "붕괴한 협곡",
-    description: "적의 매복선이 퇴로를 가로막고 있다. 좁은 협곡을 따라 북쪽 관문을 돌파하라.",
-    objective: "협곡 매복 부대를 돌파하고 관문 지휘관을 격파하라",
+    description: "적의 매복선이 퇴로를 가로막고 있다. 북쪽 신호 거점을 점령하고 연속 증원을 막아내라.",
+    objective: "북쪽 신호 거점을 35초 동안 방어하라",
+    objectiveConfig: {
+      type: "defend",
+      durationMs: 35000,
+      zone: { x: 2070, y: 270, radius: 145 },
+      waves: [
+        { atMs: 7000, x: 2230, y: 250, count: 5 },
+        { atMs: 17000, x: 2030, y: 560, count: 6 },
+        { atMs: 27000, x: 2260, y: 500, count: 7 },
+      ],
+    },
     playerStart: [260, 1320],
     field: {
       base: 0x4b4534, patch: 0x5d533b, road: 0x8a7752, grid: 0xb8a875,
@@ -91,7 +103,7 @@ export const STORY_STAGES = [
       { x: 650, y: 1220, count: 6, commander: false },
       { x: 1050, y: 870, count: 7, commander: false },
       { x: 1540, y: 520, count: 6, commander: false },
-      { x: 2070, y: 270, count: 8, commander: true },
+      { x: 2070, y: 270, count: 8, commander: false },
     ],
     recruits: [[510, 1390], [1180, 720], [1800, 390]],
     obstacles: {
@@ -105,8 +117,16 @@ export const STORY_STAGES = [
     campaignIndex: 2,
     title: "THE SILENT RELAY",
     titleKo: "침묵한 중계소",
-    description: "최종 명령의 암호 조각이 폐허가 된 중계소에 남아 있다. 방해 신호를 제거하라.",
-    objective: "중계소 방어군을 격파하고 마지막 통신 조각을 복구하라",
+    description: "최종 명령의 암호 조각이 폐허가 된 중계소에 남아 있다. 세 방해 장치를 직접 파괴하라.",
+    objective: "전장에 분산된 방해 중계 장치 3개를 파괴하라",
+    objectiveConfig: {
+      type: "destroy-targets",
+      targets: [
+        { x: 1120, y: 500, hp: 170, label: "RELAY A" },
+        { x: 1260, y: 1170, hp: 170, label: "RELAY B" },
+        { x: 2070, y: 770, hp: 220, label: "CORE RELAY" },
+      ],
+    },
     playerStart: [250, 790],
     field: {
       base: 0x263c43, patch: 0x34535a, road: 0x68777a, grid: 0x7ca0a5,
@@ -121,7 +141,7 @@ export const STORY_STAGES = [
       { x: 1120, y: 500, count: 7, commander: false },
       { x: 1260, y: 1170, count: 6, commander: false },
       { x: 1790, y: 1080, count: 7, commander: false },
-      { x: 2070, y: 770, count: 8, commander: true },
+      { x: 2070, y: 770, count: 8, commander: false },
     ],
     recruits: [[520, 680], [980, 930], [1530, 980], [1880, 650]],
     obstacles: {
@@ -137,6 +157,7 @@ export const STORY_STAGES = [
     titleKo: "루멘폴 최종 방어선",
     description: "봉쇄선 너머에 피난 통로가 있다. 살아남은 모든 동료와 함께 최후의 지휘부를 무너뜨려라.",
     objective: "봉쇄 지휘관과 적 총지휘관을 모두 격파하라",
+    objectiveConfig: { type: "eliminate", bossBattle: true },
     playerStart: [250, 820],
     final: true,
     field: {

@@ -2,6 +2,7 @@ import { GAME, COMMAND, COMMAND_LABEL } from "../config.js";
 import { Player } from "../entities/Player.js";
 import { Ally } from "../entities/Ally.js";
 import { Enemy } from "../entities/Enemy.js";
+import { ObjectiveTarget } from "../entities/ObjectiveTarget.js";
 import { SpatialHash } from "../systems/SpatialHash.js";
 import { AISystem } from "../systems/AISystem.js";
 import { BattleSystem } from "../systems/BattleSystem.js";
@@ -23,9 +24,15 @@ export class GameScene extends Phaser.Scene {
     this.allies = [];
     this.enemies = [];
     this.recruits = [];
+    this.objectiveTargets = [];
     this.totalCommanders = this.stage.squads.filter((squad) => squad.commander).length;
     this.commandersRemaining = this.totalCommanders;
     this.rescuedThisStage = 0;
+    this.defenseElapsed = 0;
+    this.defenseStarted = false;
+    this.defenseActive = false;
+    this.triggeredDefenseWaves = new Set();
+    this.stageClearPending = false;
     this.gameEnded = false;
     this.isPaused = false;
     this.nextRecruitCheckAt = 0;
@@ -38,6 +45,7 @@ export class GameScene extends Phaser.Scene {
 
     this.allyGroup = this.physics.add.group();
     this.enemyGroup = this.physics.add.group();
+    this.objectiveGroup = this.physics.add.group({ immovable: true, allowGravity: false });
     this.player = new Player(this, this.stage.playerStart[0], this.stage.playerStart[1]);
     this.physics.add.collider(this.player, this.obstacles);
     this.physics.add.collider(this.allyGroup, this.obstacles);
@@ -49,6 +57,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.allyGroup, this.enemyGroup);
     this.physics.add.collider(this.allyGroup, this.allyGroup);
     this.physics.add.collider(this.enemyGroup, this.enemyGroup);
+    this.physics.add.collider(this.player, this.objectiveGroup);
+    this.physics.add.collider(this.allyGroup, this.objectiveGroup);
 
     this.spatialHash = new SpatialHash(180);
     this.aiSystem = new AISystem(this, this.spatialHash);
@@ -57,6 +67,7 @@ export class GameScene extends Phaser.Scene {
     this.spawnInitialAllies();
     this.spawnEnemySquads();
     this.stage.recruits.forEach(([x, y]) => this.spawnRecruit(x, y));
+    this.createStageObjectives();
 
     this.createInput();
     this.createHUD();
@@ -66,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off("unit-damaged");
     this.events.on("unit-damaged", (unit) => {
       if (unit === this.player) this.cameras.main.shake(70, 0.0022);
+      if (unit.isBoss) this.updateBossPhase(unit);
     });
   }
 
@@ -98,6 +110,18 @@ export class GameScene extends Phaser.Scene {
     makeUnit("enemy", 0xa83f3b, 0xffc0a0);
     makeUnit("commander", 0x741e2e, 0xffd56a, true);
     makeUnit("recruit", 0x4b8176, 0xc8fff1);
+
+    if (!this.textures.exists("relay")) {
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x0b1719, 0.45).fillEllipse(29, 50, 44, 9);
+      g.fillStyle(0x315963, 1).fillRoundedRect(10, 27, 38, 23, 5);
+      g.fillStyle(0x77d9e8, 1).fillRect(25, 9, 5, 25);
+      g.lineStyle(3, 0x9ff6ff, 0.9).strokeCircle(28, 11, 7);
+      g.lineStyle(2, 0x66bdca, 0.8).lineBetween(28, 16, 14, 29).lineBetween(28, 16, 43, 29);
+      g.fillStyle(0x9ff6ff, 0.9).fillCircle(19, 38, 3).fillCircle(28, 38, 3).fillCircle(37, 38, 3);
+      g.generateTexture("relay", 58, 56);
+      g.destroy();
+    }
 
     if (!this.textures.exists("tree")) {
       const g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -225,6 +249,8 @@ export class GameScene extends Phaser.Scene {
     const enemy = new Enemy(this, x, y, squadId, squadCenter, isCommander);
     if (isBoss) {
       enemy.isBoss = true;
+      enemy.bossPhase = 1;
+      enemy.auraRadius = GAME.commanderAuraRadius;
       enemy.maxHp = 520;
       enemy.hp = 520;
       enemy.damage *= 1.25;
@@ -261,6 +287,98 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(25);
     this.tweens.add({ targets: ring, scale: 1.22, alpha: 0.28, duration: 820, yoyo: true, repeat: -1 });
     this.recruits.push({ sprite, ring, marker, active: true, fullMessageShown: false });
+  }
+
+  createStageObjectives() {
+    const objective = this.stage.objectiveConfig;
+    if (objective.type === "destroy-targets") {
+      for (const targetConfig of objective.targets) {
+        const target = new ObjectiveTarget(this, targetConfig.x, targetConfig.y, targetConfig);
+        this.objectiveTargets.push(target);
+        this.objectiveGroup.add(target);
+      }
+      this.objectiveTargetsRemaining = this.objectiveTargets.length;
+    }
+
+    if (objective.type === "defend") {
+      const { x, y, radius } = objective.zone;
+      this.defenseZone = this.add.circle(x, y, radius, 0x71e4ba, 0.07)
+        .setStrokeStyle(4, 0x8fffd4, 0.72)
+        .setDepth(3);
+      this.defenseZonePulse = this.add.circle(x, y, radius * 0.84, 0x71e4ba, 0)
+        .setStrokeStyle(2, 0xc9ffe9, 0.5)
+        .setDepth(3);
+      this.defenseZoneLabel = this.add.text(x, y - radius - 24, "SIGNAL DEFENSE ZONE", {
+        fontFamily: "Arial, sans-serif",
+        fontStyle: "bold",
+        fontSize: "13px",
+        color: "#a8ffdd",
+        backgroundColor: "#12372ddd",
+        padding: { x: 8, y: 4 },
+      }).setOrigin(0.5).setDepth(26);
+      this.tweens.add({
+        targets: this.defenseZonePulse,
+        scale: 1.16,
+        alpha: 0,
+        duration: 900,
+        repeat: -1,
+      });
+    }
+  }
+
+  spawnDefenseWave(wave, waveIndex) {
+    const squadCenter = { x: wave.x, y: wave.y };
+    for (let i = 0; i < wave.count; i += 1) {
+      const angle = (i / wave.count) * Math.PI * 2;
+      const radius = 48 + (i % 2) * 24;
+      this.spawnEnemy(
+        Phaser.Math.Clamp(wave.x + Math.cos(angle) * radius, 35, GAME.worldWidth - 35),
+        Phaser.Math.Clamp(wave.y + Math.sin(angle) * radius, 35, GAME.worldHeight - 35),
+        this.stage.squads.length + waveIndex,
+        squadCenter,
+        false,
+      );
+    }
+    this.showToast(`적 증원 ${waveIndex + 1}차 접근! 방어 대형을 유지하세요.`, "#ffad8d");
+  }
+
+  updateBossPhase(boss) {
+    if (!boss.active || boss.isDying || boss.hp <= 0) return;
+
+    if (boss.hpRatio <= 0.7 && boss.bossPhase < 2) {
+      boss.bossPhase = 2;
+      boss.auraRadius = 470;
+      boss.damage *= 1.16;
+      boss.auraRing?.setRadius(185).setStrokeStyle(4, 0xffba6b, 0.78);
+      this.showToast("총지휘관 2단계 — 강화 오라와 증원 신호 감지!", "#ffd27f");
+      this.spawnBossReinforcements(boss, 5, 2);
+      this.cameras.main.shake(260, 0.006);
+    }
+
+    if (boss.hpRatio <= 0.35 && boss.bossPhase < 3) {
+      boss.bossPhase = 3;
+      boss.attackCooldown *= 0.68;
+      boss.moveSpeed *= 1.22;
+      boss.detectionRange = 850;
+      this.showToast("총지휘관 최종 단계 — 영웅을 직접 추적합니다!", "#ff806f");
+      this.spawnBossReinforcements(boss, 7, 3);
+      this.cameras.main.flash(180, 255, 95, 70, false);
+    }
+  }
+
+  spawnBossReinforcements(boss, count, phase) {
+    const center = { x: boss.x, y: boss.y };
+    for (let i = 0; i < count; i += 1) {
+      const angle = (i / count) * Math.PI * 2;
+      const radius = 125 + (i % 2) * 35;
+      this.spawnEnemy(
+        Phaser.Math.Clamp(boss.x + Math.cos(angle) * radius, 35, GAME.worldWidth - 35),
+        Phaser.Math.Clamp(boss.y + Math.sin(angle) * radius, 35, GAME.worldHeight - 35),
+        100 + phase,
+        center,
+        false,
+      );
+    }
   }
 
   createInput() {
@@ -321,6 +439,16 @@ export class GameScene extends Phaser.Scene {
       backgroundColor: "#07110fbf",
       padding: { x: 10, y: 5 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 1);
+    this.bossNameText = this.add.text(GAME.width / 2, 114, "", {
+      fontFamily: "Arial Black, sans-serif",
+      fontSize: "11px",
+      color: "#ffd382",
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 3).setVisible(false);
+    this.bossHpBack = this.add.rectangle(GAME.width / 2, 132, 342, 10, 0x160b0c, 0.92)
+      .setStrokeStyle(1, 0xffb168, 0.7)
+      .setScrollFactor(0).setDepth(uiDepth + 2).setVisible(false);
+    this.bossHpFill = this.add.rectangle(GAME.width / 2 - 169, 132, 338, 6, 0xff6d55, 1)
+      .setOrigin(0, 0.5).setScrollFactor(0).setDepth(uiDepth + 3).setVisible(false);
 
     this.createCommandButton(380, 680, 170, "1  돌격", "+ATK  /  -DEF", COMMAND.ASSAULT);
     this.createCommandButton(570, 680, 170, "2  집결", "HOLD FORMATION", COMMAND.REGROUP);
@@ -333,7 +461,7 @@ export class GameScene extends Phaser.Scene {
       color: "#ffffff",
       backgroundColor: "#06110ed9",
       padding: { x: 18, y: 10 },
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 10).setAlpha(0);
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(uiDepth + 10).setAlpha(0).setY(170);
 
     this.createMiniMap(uiDepth);
     this.createTouchControls(uiDepth);
@@ -438,7 +566,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  update(time) {
+  update(time, delta) {
     if (this.gameEnded || this.isPaused || !this.player.active) return;
 
     const input = new Phaser.Math.Vector2(
@@ -449,14 +577,19 @@ export class GameScene extends Phaser.Scene {
     );
     this.player.updateMovement(input);
 
-    this.spatialHash.rebuild([this.allies, this.enemies, [this.player]]);
+    this.spatialHash.rebuild([this.allies, this.enemies, this.objectiveTargets, [this.player]]);
     this.enforceUnitSpacing();
     // Spacing can move a unit across a cell boundary, so refresh the index before
     // AI perception and automatic target acquisition use it.
-    this.spatialHash.rebuild([this.allies, this.enemies, [this.player]]);
+    this.spatialHash.rebuild([this.allies, this.enemies, this.objectiveTargets, [this.player]]);
     this.aiSystem.updateAllies(time, this.allies, this.player, this.command);
     this.aiSystem.updateEnemies(time, this.enemies, this.player);
     this.battleSystem.update(time, this.player, this.allies, this.enemies, this.command);
+    this.objectiveTargets.forEach((target) => {
+      if (target.active) target.updateOverlays();
+    });
+    this.updateStageObjective(delta);
+    if (this.gameEnded) return;
 
     if (time >= this.nextRecruitCheckAt) {
       this.checkRecruitment();
@@ -468,6 +601,78 @@ export class GameScene extends Phaser.Scene {
     }
     this.updateCommanderLabels();
     this.updateHUD();
+  }
+
+  updateStageObjective(delta) {
+    const objective = this.stage.objectiveConfig;
+    if (objective.type !== "defend" || this.gameEnded) return;
+
+    const distance = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      objective.zone.x,
+      objective.zone.y,
+    );
+    const insideZone = distance <= objective.zone.radius;
+
+    if (insideZone) {
+      if (!this.defenseStarted) {
+        this.defenseStarted = true;
+        this.showToast("방어 신호 연결! 거점을 이탈하지 말고 유지하세요.", "#9effd8");
+      } else if (!this.defenseActive) {
+        this.showToast("방어 신호 재연결 — 타이머가 계속 진행됩니다.", "#9effd8");
+      }
+      this.defenseActive = true;
+      this.defenseElapsed = Math.min(objective.durationMs, this.defenseElapsed + delta);
+      this.defenseZone?.setFillStyle(0x71e4ba, 0.15).setStrokeStyle(5, 0xafffe2, 0.94);
+
+      objective.waves.forEach((wave, index) => {
+        if (this.defenseElapsed >= wave.atMs && !this.triggeredDefenseWaves.has(index)) {
+          this.triggeredDefenseWaves.add(index);
+          this.spawnDefenseWave(wave, index);
+        }
+      });
+      this.checkStageVictory();
+    } else {
+      if (this.defenseActive) this.showToast("거점 이탈 — 방어 타이머가 일시 정지됩니다.", "#ffc18c");
+      this.defenseActive = false;
+      this.defenseZone?.setFillStyle(0x71e4ba, 0.07).setStrokeStyle(4, 0x8fffd4, 0.72);
+    }
+  }
+
+  checkStageVictory() {
+    if (this.gameEnded || this.stageClearPending) return;
+    const objective = this.stage.objectiveConfig;
+    let complete = false;
+
+    if (objective.type === "eliminate") complete = this.commandersRemaining <= 0;
+    if (objective.type === "rescue-eliminate") {
+      complete = this.commandersRemaining <= 0 && this.rescuedThisStage >= objective.rescueRequired;
+    }
+    if (objective.type === "defend") complete = this.defenseElapsed >= objective.durationMs;
+    if (objective.type === "destroy-targets") complete = this.objectiveTargetsRemaining <= 0;
+
+    if (complete) {
+      this.stageClearPending = true;
+      this.time.delayedCall(450, () => this.endGame(true));
+    }
+  }
+
+  getObjectiveProgressText() {
+    const objective = this.stage.objectiveConfig;
+    if (objective.type === "rescue-eliminate") {
+      return `구출 ${this.rescuedThisStage}/${objective.rescueRequired}  ·  지휘관 ${this.commandersRemaining}/${this.totalCommanders}`;
+    }
+    if (objective.type === "defend") {
+      const seconds = Math.floor(this.defenseElapsed / 1000);
+      const total = Math.ceil(objective.durationMs / 1000);
+      const state = !this.defenseStarted ? "거점 도달" : this.defenseActive ? "방어 중" : "거점 이탈";
+      return `${state}     ${seconds} / ${total}초`;
+    }
+    if (objective.type === "destroy-targets") {
+      return `방해 장치     ${this.objectiveTargetsRemaining} / ${objective.targets.length}`;
+    }
+    return `적 지휘관     ${this.commandersRemaining} / ${this.totalCommanders}`;
   }
 
   enforceUnitSpacing() {
@@ -550,6 +755,7 @@ export class GameScene extends Phaser.Scene {
       this.rescuedThisStage += 1;
       this.showToast("새로운 동료가 합류했습니다.", "#9effdc");
       this.spawnBurst(ally.x, ally.y, 0x7fffd1);
+      this.checkStageVictory();
       break;
     }
   }
@@ -573,7 +779,14 @@ export class GameScene extends Phaser.Scene {
       unit.targetLabel?.destroy();
       this.cameras.main.flash(180, 255, 214, 113, false);
       this.showToast(`적 지휘관 격파! 남은 지휘관 ${this.commandersRemaining}`, "#ffe28a");
-      if (this.commandersRemaining === 0) this.time.delayedCall(700, () => this.endGame(true));
+      this.checkStageVictory();
+    }
+
+    if (unit.isObjective) {
+      this.objectiveTargetsRemaining = Math.max(0, this.objectiveTargetsRemaining - 1);
+      this.cameras.main.flash(120, 120, 235, 255, false);
+      this.showToast(`방해 장치 파괴! 남은 장치 ${this.objectiveTargetsRemaining}`, "#a4f7ff");
+      this.checkStageVictory();
     }
 
     this.spawnBurst(unit.x, unit.y, unit.faction === "enemy" ? 0xff655d : 0x6dbfff);
@@ -629,14 +842,14 @@ export class GameScene extends Phaser.Scene {
 
   showToast(message, color = "#ffffff") {
     this.tweens.killTweensOf(this.toastText);
-    this.toastText.setText(message).setColor(color).setAlpha(1).setY(126);
-    this.tweens.add({ targets: this.toastText, alpha: 0, y: 112, delay: 1500, duration: 480 });
+    this.toastText.setText(message).setColor(color).setAlpha(1).setY(170);
+    this.tweens.add({ targets: this.toastText, alpha: 0, y: 154, delay: 1500, duration: 480 });
   }
 
   updateCommanderLabels() {
     for (const enemy of this.enemies) {
       if (enemy.active && enemy.isCommander && enemy.targetLabel) {
-        enemy.targetLabel.setPosition(enemy.x, enemy.y - 55);
+        enemy.targetLabel.setPosition(enemy.x, enemy.y - (enemy.isBoss ? 68 : 55));
       }
     }
   }
@@ -646,8 +859,17 @@ export class GameScene extends Phaser.Scene {
     const allyCount = this.allies.filter((ally) => ally.active).length;
     this.playerHpText.setText(`PLAYER HP   ${Math.ceil(this.player.hp)} / ${this.player.maxHp}`);
     this.allyCountText.setText(`아군 병력     ${allyCount} / ${GAME.maxAllies}`);
-    this.commanderText.setText(`적 지휘관     ${this.commandersRemaining} / ${this.totalCommanders}`);
+    this.commanderText.setText(this.getObjectiveProgressText());
     this.commandText.setText(`현재 명령   ${COMMAND_LABEL[this.command]}`);
+    const boss = this.enemies.find((enemy) => enemy.active && enemy.isBoss);
+    const showBoss = Boolean(boss && (boss.hp < boss.maxHp || boss.distanceTo(this.player) < 650));
+    this.bossNameText.setVisible(showBoss);
+    this.bossHpBack.setVisible(showBoss);
+    this.bossHpFill.setVisible(showBoss);
+    if (showBoss) {
+      this.bossNameText.setText(`SUPREME COMMANDER  ·  PHASE ${boss.bossPhase}`);
+      this.bossHpFill.setScale(boss.hpRatio, 1).setFillStyle(boss.bossPhase >= 3 ? 0xff3d3d : 0xff6d55);
+    }
     this.commandButtons?.forEach((button, key) => {
       const active = key === this.command;
       button.setFillStyle(active ? 0x2b6b58 : 0x12231e, active ? 1 : 0.94);
@@ -674,6 +896,10 @@ export class GameScene extends Phaser.Scene {
     for (const recruit of this.recruits) {
       if (!recruit.active) continue;
       this.miniMap.fillStyle(0x6fffd6, 0.9).fillCircle(mapX(recruit.sprite.x), mapY(recruit.sprite.y), 2.5);
+    }
+    for (const target of this.objectiveTargets) {
+      if (!target.active) continue;
+      this.miniMap.fillStyle(0x83f4ff, 1).fillRect(mapX(target.x) - 2, mapY(target.y) - 2, 5, 5);
     }
     this.miniMap.fillStyle(0x7ee8ff, 1).fillCircle(mapX(this.player.x), mapY(this.player.y), 4);
   }
