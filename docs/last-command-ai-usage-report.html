@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LAST COMMAND — AI 활용 기술서</title>
+  <style>
+    :root {
+      --ink: #12241e;
+      --paper: #f4f1e7;
+      --green: #289a75;
+      --deep: #08231b;
+      --deep-2: #10372b;
+      --mint: #79e0ba;
+      --gold: #e0bc5d;
+      --orange: #da7653;
+      --blue: #4aa0b8;
+      --muted: #61746b;
+      --line: rgba(18, 36, 30, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #c8ccc6; }
+    body {
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      font-size: 9.4pt;
+      line-height: 1.52;
+      word-break: keep-all;
+    }
+    @page { size: A4 portrait; margin: 0; }
+    .page {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto 8mm;
+      padding: 15mm 16mm 14mm;
+      overflow: hidden;
+      page-break-after: always;
+      background:
+        linear-gradient(140deg, rgba(40,154,117,.045), transparent 38%),
+        var(--paper);
+    }
+    .page:last-child { page-break-after: auto; }
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(18,36,30,.024) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18,36,30,.024) 1px, transparent 1px);
+      background-size: 14mm 14mm;
+      mask-image: linear-gradient(to bottom, #000, transparent 50%);
+    }
+    .page-no, .footer-label {
+      position: absolute;
+      z-index: 5;
+      bottom: 7mm;
+      color: #76877f;
+      font-size: 7.2pt;
+      letter-spacing: .08em;
+    }
+    .page-no { right: 16mm; font-weight: 800; }
+    .footer-label { left: 16mm; }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h2 { margin-bottom: 3mm; font-size: 22pt; line-height: 1.17; letter-spacing: -.045em; }
+    h3 { margin-bottom: 1.7mm; font-size: 11.5pt; letter-spacing: -.025em; }
+    p { margin-bottom: 2.8mm; }
+    strong { font-weight: 800; }
+    code {
+      padding: .25mm 1mm;
+      border-radius: 1mm;
+      background: #dfe4dc;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 8pt;
+    }
+    .kicker {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 2.5mm;
+      color: var(--green);
+      font-size: 7.8pt;
+      font-weight: 900;
+      letter-spacing: .17em;
+    }
+    .lead { color: #40544b; font-size: 10.6pt; line-height: 1.62; }
+    .small { font-size: 8pt; line-height: 1.48; }
+    .tiny { font-size: 7.1pt; line-height: 1.43; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--green); }
+    .gold-text { color: #a87d19; }
+    .no-margin { margin: 0; }
+    .divider { height: 1px; margin: 4mm 0; background: var(--line); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; }
+    .card {
+      position: relative;
+      z-index: 2;
+      padding: 3.6mm;
+      border: 1px solid var(--line);
+      border-radius: 2.8mm;
+      background: rgba(255,255,255,.55);
+    }
+    .card.dark { border-color: rgba(121,224,186,.23); background: var(--deep); color: #edf5f0; }
+    .card.dark p, .card.dark li { color: #c2d6cc; }
+    .card.green { border-top: 1.2mm solid var(--green); }
+    .card.gold { border-top: 1.2mm solid var(--gold); }
+    .card.blue { border-top: 1.2mm solid var(--blue); }
+    .card.orange { border-top: 1.2mm solid var(--orange); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 5.5mm;
+      padding: .8mm 2.2mm;
+      border: 1px solid rgba(40,154,117,.3);
+      border-radius: 10mm;
+      background: rgba(121,224,186,.1);
+      color: #17664b;
+      font-size: 7pt;
+      font-weight: 850;
+      letter-spacing: .04em;
+    }
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 7mm;
+      height: 7mm;
+      margin-bottom: 2mm;
+      border-radius: 50%;
+      background: var(--deep);
+      color: var(--mint);
+      font-size: 7.6pt;
+      font-weight: 900;
+    }
+
+    /* Cover */
+    .cover { padding: 0; background: #061711; color: #eef4ef; }
+    .cover::before {
+      background-image:
+        linear-gradient(rgba(121,224,186,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(121,224,186,.06) 1px, transparent 1px);
+      background-size: 15mm 15mm;
+      mask-image: none;
+    }
+    .cover-inner { position: relative; z-index: 2; height: 100%; padding: 20mm 17mm 15mm; }
+    .cover-glow {
+      position: absolute;
+      top: -55mm;
+      right: -55mm;
+      width: 160mm;
+      height: 160mm;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(49,205,149,.3), transparent 66%);
+    }
+    .cover .eyebrow { color: var(--mint); font-size: 8pt; font-weight: 900; letter-spacing: .18em; }
+    .cover h1 { margin: 13mm 0 2mm; font-size: 40pt; line-height: .98; letter-spacing: -.055em; }
+    .cover .sub { color: #8de8c7; font-size: 16pt; font-weight: 750; }
+    .cover .desc { width: 135mm; margin-top: 5mm; color: #c4d6cd; font-size: 11.5pt; line-height: 1.62; }
+    .cover-tags { display: flex; gap: 2mm; margin-top: 5mm; }
+    .cover .tag { border-color: rgba(121,224,186,.3); background: rgba(121,224,186,.07); color: #a7efd5; }
+    .ai-map {
+      position: relative;
+      height: 84mm;
+      margin-top: 10mm;
+      border: 1px solid rgba(121,224,186,.18);
+      border-radius: 4mm;
+      overflow: hidden;
+      background: linear-gradient(155deg, #102f25, #091a15);
+    }
+    .ai-map svg { display: block; width: 100%; height: 100%; }
+    .cover-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2mm;
+      margin-top: 5mm;
+    }
+    .cover-item { padding: 3.5mm; border-left: .8mm solid var(--mint); background: rgba(255,255,255,.035); }
+    .cover-item b { display: block; color: #f0d476; font-size: 12pt; }
+    .cover-item span { color: #93aa9f; font-size: 7.3pt; }
+    .cover-meta {
+      position: absolute;
+      left: 17mm;
+      right: 17mm;
+      bottom: 13mm;
+      display: flex;
+      justify-content: space-between;
+      padding-top: 4mm;
+      border-top: 1px solid rgba(255,255,255,.13);
+      color: #708c7e;
+      font-size: 7.3pt;
+      letter-spacing: .04em;
+    }
+
+    /* Tools */
+    .role-banner {
+      display: grid;
+      grid-template-columns: 24mm 1fr;
+      gap: 4mm;
+      align-items: center;
+      margin: 4mm 0;
+      padding: 4mm;
+      border-radius: 3mm;
+      background: var(--deep);
+      color: white;
+    }
+    .role-mark {
+      display: grid;
+      place-items: center;
+      width: 22mm;
+      height: 22mm;
+      border: 1px solid rgba(121,224,186,.45);
+      border-radius: 50%;
+      color: var(--mint);
+      font-size: 17pt;
+      font-weight: 900;
+    }
+    .tool-card { min-height: 41mm; }
+    .tool-name { color: var(--green); font-size: 12pt; font-weight: 900; }
+    .tool-kind { color: var(--muted); font-size: 7pt; font-weight: 800; letter-spacing: .08em; }
+    .used-not-used {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 4mm;
+      margin-top: 4mm;
+    }
+    .check-list { margin: 0; padding: 0; list-style: none; }
+    .check-list li { position: relative; margin-bottom: 1.7mm; padding-left: 6mm; font-size: 8pt; }
+    .check-list li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 900; }
+    .no-list li::before { content: "—"; color: var(--orange); }
+
+    /* Prompt */
+    .prompt-framework {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2mm;
+      margin: 3mm 0 4mm;
+    }
+    .framework-item { padding: 3mm; border-radius: 2mm; background: #e2e7df; }
+    .framework-item b { display: block; color: var(--green); font-size: 8pt; }
+    .framework-item span { color: #53675e; font-size: 7.2pt; }
+    .prompt-box {
+      margin-bottom: 3mm;
+      padding: 3.5mm 4mm;
+      border-left: 1mm solid var(--green);
+      border-radius: 0 2mm 2mm 0;
+      background: #e7e9e2;
+    }
+    .prompt-box .label { margin-bottom: 1mm; color: var(--green); font-size: 7pt; font-weight: 900; letter-spacing: .09em; }
+    .prompt-box blockquote { margin: 0; color: #293f36; font-size: 8.2pt; line-height: 1.55; }
+    .prompt-box .intent { margin-top: 1.6mm; color: #697a72; font-size: 7pt; }
+    .prompt-mini { min-height: 34mm; }
+    .prompt-mini b { display: block; margin-bottom: 1.5mm; color: var(--green); font-size: 7.4pt; letter-spacing: .05em; }
+    .prompt-mini q { display: block; color: #354940; font-size: 7.5pt; line-height: 1.45; }
+
+    /* Timeline */
+    .timeline { position: relative; margin: 2mm 0 0 2mm; padding-left: 9mm; }
+    .timeline::before { content: ""; position: absolute; top: 2mm; bottom: 2mm; left: 2.4mm; width: 1px; background: #a8c7b9; }
+    .event { position: relative; display: grid; grid-template-columns: 25mm 1fr 30mm; gap: 3mm; align-items: start; margin-bottom: 3mm; }
+    .event::before {
+      content: "";
+      position: absolute;
+      left: -9mm;
+      top: 1.5mm;
+      width: 5mm;
+      height: 5mm;
+      border: 1mm solid var(--paper);
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .hash { color: var(--green); font-family: "SFMono-Regular", Consolas, monospace; font-size: 7.4pt; font-weight: 900; }
+    .event-title { margin-bottom: .7mm; font-size: 8.4pt; font-weight: 850; }
+    .event-desc { color: #566961; font-size: 7.4pt; line-height: 1.42; }
+    .evidence { padding: 1.4mm; border-radius: 1.2mm; background: #e0e5dd; color: #51645c; font-size: 6.8pt; text-align: center; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; margin-top: 3mm; }
+    .artifact { padding: 2.5mm; border-radius: 1.5mm; background: var(--deep); color: #dbe8e2; }
+    .artifact b { display: block; color: var(--mint); font-size: 7.5pt; }
+    .artifact span { font-size: 6.7pt; }
+
+    /* Verification */
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.5mm;
+      margin: 3mm 0 4mm;
+    }
+    .workflow-step { position: relative; min-height: 28mm; padding: 3mm 2mm; border-radius: 2mm; background: var(--deep); color: white; text-align: center; }
+    .workflow-step:not(:last-child)::after { content: "›"; position: absolute; right: -2.5mm; top: 8mm; z-index: 3; color: var(--gold); font-size: 14pt; font-weight: 900; }
+    .workflow-step b { display: block; margin: 1mm 0; color: var(--mint); font-size: 7.8pt; }
+    .workflow-step span { color: #b9cec4; font-size: 6.6pt; }
+    .test-table { width: 100%; border-collapse: collapse; }
+    .test-table th, .test-table td { padding: 2mm 2.4mm; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .test-table th { color: var(--muted); font-size: 7pt; letter-spacing: .07em; }
+    .test-table td { font-size: 7.6pt; }
+    .status { color: var(--green); font-size: 7pt; font-weight: 900; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; margin-top: 3mm; }
+    .metric { padding: 3mm; border-left: .8mm solid var(--green); background: #e1e6de; }
+    .metric b { display: block; color: var(--green); font-size: 13pt; }
+    .metric span { color: var(--muted); font-size: 7pt; }
+
+    /* Runtime AI */
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr 17mm 1fr;
+      gap: 3mm;
+      align-items: center;
+      margin: 3mm 0 4mm;
+    }
+    .pill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5mm; }
+    .pill { padding: 2mm; border-radius: 1.4mm; background: #e0e5dd; color: #455950; font-size: 7.2pt; font-weight: 750; text-align: center; }
+    .core { display: grid; place-items: center; width: 17mm; height: 17mm; border-radius: 50%; background: var(--deep); color: var(--mint); font-size: 7.5pt; font-weight: 900; line-height: 1.1; text-align: center; }
+    .boundary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-top: 3mm;
+    }
+    .boundary-card { min-height: 48mm; }
+    .boundary-card ul { margin: 2mm 0 0; padding-left: 4mm; }
+    .boundary-card li { margin-bottom: 1.5mm; font-size: 7.6pt; }
+    .risk-table { width: 100%; border-collapse: collapse; }
+    .risk-table td { padding: 2.2mm; border-bottom: 1px solid var(--line); font-size: 7.5pt; vertical-align: top; }
+    .risk-table td:first-child { width: 28%; color: #9a4d36; font-weight: 850; }
+    .repo { padding: 3mm 4mm; border: 1px solid rgba(40,154,117,.36); border-radius: 2mm; background: rgba(121,224,186,.09); color: #155d45; font-size: 8.2pt; font-weight: 850; }
+
+    @media print { html, body { background: transparent; } .page { margin: 0; } }
+  </style>
+</head>
+<body>
+  <section class="page cover">
+    <div class="cover-glow"></div>
+    <div class="cover-inner">
+      <div class="eyebrow">AI GAME COMPETITION · TECHNICAL REPORT</div>
+      <h1>LAST COMMAND</h1>
+      <div class="sub">AI 활용 기술서</div>
+      <p class="desc">개발에 사용한 AI 도구, 대표 프롬프트, 단계별 활용 내역과 검증 절차를 기록한 공모전 제출 문서</p>
+      <div class="cover-tags">
+        <span class="tag">AI-ASSISTED DEVELOPMENT</span>
+        <span class="tag">PROMPT LOG</span>
+        <span class="tag">VERIFICATION</span>
+        <span class="tag">RUNTIME AI</span>
+      </div>
+
+      <div class="ai-map" aria-label="사람의 요구가 AI 개발 도구를 거쳐 코드와 검증 결과로 연결되는 도식">
+        <svg viewBox="0 0 900 400" role="img">
+          <defs>
+            <filter id="soft"><feGaussianBlur stdDeviation="9" /></filter>
+            <linearGradient id="flow" x1="0" x2="1"><stop stop-color="#78e0ba"/><stop offset="1" stop-color="#e0bc5d"/></linearGradient>
+          </defs>
+          <circle cx="450" cy="198" r="92" fill="#3fd19c" opacity=".13" filter="url(#soft)" />
+          <circle cx="450" cy="198" r="64" fill="#123c30" stroke="#78e0ba" stroke-width="3" />
+          <path d="M420 198c0-22 12-39 31-39c22 0 35 17 30 36c15 7 19 28 7 41c-11 12-29 12-38 3c-13 10-36 4-42-12c-6-14-1-24 12-29z" fill="none" stroke="#9af0d1" stroke-width="5"/>
+          <path d="M451 160v77M420 198h31M452 181h27M451 218h38" stroke="#9af0d1" stroke-width="3"/>
+          <g fill="#78e0ba">
+            <circle cx="451" cy="160" r="4"/><circle cx="420" cy="198" r="4"/><circle cx="479" cy="181" r="4"/><circle cx="489" cy="218" r="4"/><circle cx="451" cy="237" r="4"/>
+          </g>
+          <text x="412" y="292" fill="#8ce8c8" font-size="17" font-weight="800">CODEX</text>
+          <g stroke="url(#flow)" stroke-width="3" fill="none" stroke-dasharray="9 9">
+            <path d="M150 102 C250 102 310 142 385 174"/><path d="M150 292 C250 292 305 248 385 220"/>
+            <path d="M515 178 C600 145 654 102 753 102"/><path d="M515 220 C602 254 663 292 753 292"/>
+          </g>
+          <g font-size="15" font-weight="800">
+            <rect x="62" y="72" width="132" height="58" rx="14" fill="#173d31" stroke="#4cbf94"/><text x="90" y="106" fill="#d8eee4">요구사항</text>
+            <rect x="62" y="264" width="132" height="58" rx="14" fill="#173d31" stroke="#4cbf94"/><text x="86" y="298" fill="#d8eee4">반복 피드백</text>
+            <rect x="706" y="72" width="132" height="58" rx="14" fill="#3b3320" stroke="#d9b758"/><text x="739" y="106" fill="#f3dda0">코드 산출</text>
+            <rect x="706" y="264" width="132" height="58" rx="14" fill="#233b35" stroke="#79b9aa"/><text x="738" y="298" fill="#d9e9e2">실행 검증</text>
+          </g>
+          <text x="62" y="40" fill="#79e0ba" font-size="14" letter-spacing="3">HUMAN-IN-THE-LOOP DEVELOPMENT</text>
+          <text x="646" y="370" fill="#90a79d" font-size="12">PROMPT → PATCH → TEST → REVIEW</text>
+        </svg>
+      </div>
+
+      <div class="cover-summary">
+        <div class="cover-item"><b>1개 AI 도구</b><span>OpenAI Codex 중심 활용</span></div>
+        <div class="cover-item"><b>7개 개발 단계</b><span>초기 구현부터 문서화까지</span></div>
+        <div class="cover-item"><b>사람 최종 승인</b><span>요구·수정·커밋·배포 결정</span></div>
+      </div>
+
+      <div class="cover-meta"><span>AI 도구 · 프롬프트 · 활용 내역</span><span>2026. 08 · SUBMISSION EDITION</span></div>
+    </div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">01 · AI TOOLS &amp; ROLE</div>
+    <h2>AI 도구와 역할</h2>
+    <p class="lead">본 프로젝트는 <strong>OpenAI Codex</strong>를 개발 보조 에이전트로 사용했습니다. 사용자가 목표와 제약, 수정 우선순위를 결정하고 AI가 저장소 분석·코드 작성·리팩터링·검증 스크립트 작성·문서화를 수행한 뒤, 실제 실행 결과를 기준으로 반복 수정했습니다.</p>
+
+    <div class="role-banner">
+      <div class="role-mark">H↔AI</div>
+      <div>
+        <h3 class="no-margin">Human-in-the-loop 공동 개발</h3>
+        <p class="small no-margin">AI의 출력은 바로 제출 결과로 간주하지 않았습니다. 기능 단위로 브라우저 실행, 콘솔 오류, 저장 상태와 버튼 동작을 확인한 후 사용자가 커밋·푸시를 명시적으로 승인했습니다.</p>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card tool-card green">
+        <div class="tool-kind">PRIMARY AI TOOL</div>
+        <div class="tool-name">OpenAI Codex</div>
+        <p class="small">GPT-5 기반 개발 에이전트. 자연어 요구를 파일 단위 구현 계획과 코드 패치로 변환하고, 기존 구조를 읽어 변경 범위를 제한했습니다.</p>
+        <span class="tag">코드 생성</span> <span class="tag">리팩터링</span>
+      </div>
+      <div class="card tool-card gold">
+        <div class="tool-kind">VERIFICATION TOOL</div>
+        <div class="tool-name">Headless Chrome</div>
+        <p class="small">AI 도구가 아니라 검증 도구입니다. 실제 Phaser 장면을 실행해 승리·패배·버튼·저장값·콘솔 오류를 자동 확인했습니다.</p>
+        <span class="tag">브라우저 테스트</span>
+      </div>
+      <div class="card tool-card blue">
+        <div class="tool-kind">ENGINEERING TOOL</div>
+        <div class="tool-name">Git · Shell</div>
+        <p class="small">검색, 문법 검사, 변경 비교, 커밋 이력 기록에 사용했습니다. 각 기능은 독립 커밋으로 남겨 AI 활용 결과를 추적할 수 있습니다.</p>
+        <span class="tag">변경 추적</span> <span class="tag">재현</span>
+      </div>
+    </div>
+
+    <div class="used-not-used">
+      <div class="card">
+        <h3>Codex 활용 범위</h3>
+        <ul class="check-list">
+          <li>현재 프로젝트 디렉터리와 기존 코드 구조 분석</li>
+          <li>Phaser 장면·엔티티·AI·전투 시스템 분리 설계</li>
+          <li>게임 코드 작성, 버그 원인 추적과 최소 범위 수정</li>
+          <li>공간 해시 기반 성능 개선과 주석·README 작성</li>
+          <li>브라우저 자동 검증 시나리오 작성 및 결과 판독</li>
+          <li>제출용 게임 소개서와 AI 활용 기술서 구성</li>
+        </ul>
+      </div>
+      <div class="card orange">
+        <h3>사용하지 않은 항목</h3>
+        <ul class="check-list no-list">
+          <li>실행 중 외부 LLM/API 호출</li>
+          <li>이미지 생성 AI 및 외부 이미지 에셋</li>
+          <li>음악·음성 생성 AI</li>
+          <li>외부 상용 게임 코드·그래픽 복제</li>
+          <li>사용자 개인정보 수집용 백엔드</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="grid-2">
+      <div class="card dark">
+        <h3>사람이 결정한 것</h3>
+        <p class="small no-margin">게임 방향, 필수 기능, 오리지널리티 조건, 수정 요청, 우선순위, 최종 결과 채택, Git 커밋 및 원격 푸시 여부.</p>
+      </div>
+      <div class="card">
+        <h3>AI가 지원한 것</h3>
+        <p class="small no-margin">구현안 제안, 모듈화, 파일 생성·수정, 오류 진단, 반복 테스트, 코드 품질 점검, 제출 문서 초안과 시각 구성.</p>
+      </div>
+    </div>
+
+    <span class="footer-label">LAST COMMAND · AI 활용 기술서</span><span class="page-no">02 / 06</span>
+  </section>
+
+  <section class="page">
+    <div class="kicker">02 · PROMPT DESIGN</div>
+    <h2>프롬프트 설계와 실제 예시</h2>
+    <p class="lead">프롬프트는 한 번의 “게임 제작” 요청에 그치지 않고, 플랫폼 제약과 합격 기준을 포함한 기준 프롬프트를 먼저 제공한 뒤 실제 플레이 결과에 따라 짧은 수정 프롬프트를 반복하는 방식으로 운영했습니다.</p>
+
+    <div class="prompt-framework">
+      <div class="framework-item"><b>CONTEXT</b><span>게임 장르, 공모전 목적, 기존 저장소</span></div>
+      <div class="framework-item"><b>OBJECTIVE</b><span>이번 단계에서 완성할 기능과 사용자 경험</span></div>
+      <div class="framework-item"><b>CONSTRAINTS</b><span>정적 배포, 원본성, 성능, 파일 구조</span></div>
+      <div class="framework-item"><b>VERIFICATION</b><span>실행·조작·오류·저장 여부 확인 항목</span></div>
+    </div>
+
+    <div class="prompt-box">
+      <div class="label">MASTER PROMPT · 초기 제작</div>
+      <blockquote>“퍼스트퀸4에서 영감을 받은 대규모 동료 부대 실시간 전투 RPG를 만들어주세요. 단, 캐릭터·이름·스토리·맵·그래픽·음악·UI·고유 시스템을 복제하지 말고 완전히 새로운 오리지널 게임으로 제작해야 합니다. HTML5, JavaScript, Phaser 3, GitHub Pages에서 별도 서버 없이 실행… 아군 AI 상태는 FOLLOW, ATTACK, RETREAT, PROTECT, REGROUP, DEFEND로 분리…”</blockquote>
+      <div class="intent">활용 의도: 장르 목표뿐 아니라 저작권 경계, 기술 스택, 파일 구조, AI 입력·상태, 성능, 검증 체크리스트를 동시에 고정</div>
+    </div>
+
+    <h3>반복 개선 프롬프트</h3>
+    <div class="grid-2">
+      <div class="card prompt-mini green">
+        <b>COMBAT UX</b>
+        <q>“적이랑 겹쳐지지 않게 하고 자동공격 되게 해줘. 스페이스 눌러서 공격하는 게 아니라.”</q>
+        <p class="tiny muted no-margin">결과: 적·아군 충돌 및 separation 보강, 자동 표적 획득과 쿨타임 공격으로 변경.</p>
+      </div>
+      <div class="card prompt-mini orange">
+        <b>BUG FIX</b>
+        <q>“패배하거나 승리했을 때 다시 시작, 메인 화면 버튼이 왜 안 눌러지지?”</q>
+        <p class="tiny muted no-margin">결과: 카메라 이동 후 입력 좌표가 어긋나는 원인을 찾고 오버레이 자식의 scroll factor를 고정.</p>
+      </div>
+      <div class="card prompt-mini blue">
+        <b>CAMPAIGN</b>
+        <q>“지도를 만들어서 이동하면서 최종 맵 클리어 하는 건 어떨까? 만들어줘.”</q>
+        <p class="tiny muted no-margin">결과: 4지역 전술 지도, 스테이지 해금, 생존 부대 계승, localStorage 저장 구현.</p>
+      </div>
+      <div class="card prompt-mini gold">
+        <b>SCORING</b>
+        <q>“살아남은 유닛이나 체력, 클리어 시간 등으로 라운드 종료되고 점수 부여되게 하면 좋을 듯.”</q>
+        <p class="tiny muted no-margin">결과: 순수 계산 모듈, S~D 등급, 항목별 점수, 지역 최고·캠페인 누적 점수 구현.</p>
+      </div>
+    </div>
+
+    <div class="card dark" style="margin-top:4mm;">
+      <h3>프롬프트 → 산출물 변환 원칙</h3>
+      <div class="grid-3">
+        <p class="small no-margin"><strong class="accent">1. 먼저 읽기</strong><br />수정 전 파일과 Git 상태를 확인해 기존 사용자 변경을 보존.</p>
+        <p class="small no-margin"><strong class="accent">2. 역할 분리</strong><br />AI, 전투, 캠페인, 점수를 별도 모듈로 유지해 한 파일 집중 방지.</p>
+        <p class="small no-margin"><strong class="accent">3. 실행으로 판정</strong><br />설명이나 코드 모양이 아니라 실제 Chrome 동작과 저장값으로 완료 여부 판단.</p>
+      </div>
+    </div>
+
+    <p class="tiny muted" style="margin-top:3mm;">※ 위 문장은 실제 개발 대화의 대표 요청을 의미가 변하지 않는 범위에서 발췌·정리했습니다. 전체 초기 프롬프트에는 조작, 전투 수치, 맵, AI 성향, UI, README와 검증 조건이 더 상세하게 포함되었습니다.</p>
+
+    <span class="footer-label">LAST COMMAND · AI 활용 기술서</span><span class="page-no">03 / 06</span>
+  </section>
+
+  <section class="page">
+    <div class="kicker">03 · UTILIZATION LOG</div>
+    <h2>단계별 AI 활용 내역</h2>
+    <p class="lead">각 요구는 “저장소 확인 → 구현 → 문법·브라우저 검증 → 변경 비교 → 사용자 승인 → 커밋” 순서로 처리했습니다. 아래 Git 커밋은 실제 저장소에서 확인 가능한 결과 근거입니다.</p>
+
+    <div class="timeline">
+      <div class="event">
+        <div class="hash">d53661a</div>
+        <div><div class="event-title">초기 게임 전체 구현</div><div class="event-desc">15개 파일, 1,817줄 규모의 Phaser 프로젝트 구성. 메뉴, 전장, 유닛, 부대 AI, 전투, 공간 해시, README 생성.</div></div>
+        <div class="evidence">BASE BUILD<br />15 FILES</div>
+      </div>
+      <div class="event">
+        <div class="hash">be25c9e</div>
+        <div><div class="event-title">자동 공격과 유닛 충돌 개선</div><div class="event-desc">Space 수동 공격을 제거하고 근접 자동 공격으로 전환. 적과 유닛이 완전히 겹치지 않도록 물리 충돌·간격 보정.</div></div>
+        <div class="evidence">COMBAT UX<br />5 FILES</div>
+      </div>
+      <div class="event">
+        <div class="hash">93f09a3</div>
+        <div><div class="event-title">결과 화면 버튼 입력 오류 수정</div><div class="event-desc">카메라가 이동한 전장에서 화면 고정 UI의 렌더 좌표와 입력 좌표가 달라지는 원인을 진단하고 자식 객체까지 고정.</div></div>
+        <div class="evidence">BUG FIX<br />HIT AREA</div>
+      </div>
+      <div class="event">
+        <div class="hash">bfaf69f</div>
+        <div><div class="event-title">4스테이지 스토리 캠페인</div><div class="event-desc">전술 지도, 해금 순서, 생존 부대 계승, 브라우저 저장, 지역별 설정 데이터를 독립 모듈로 추가.</div></div>
+        <div class="evidence">CAMPAIGN<br />691 LINES</div>
+      </div>
+      <div class="event">
+        <div class="hash">ac1678f</div>
+        <div><div class="event-title">미션 다양화와 단계형 보스</div><div class="event-desc">구출·거점 방어·장치 파괴 목표, 증원 웨이브, 3단계 총지휘관 패턴과 전용 HUD 추가.</div></div>
+        <div class="evidence">MISSION AI<br />BOSS PHASE</div>
+      </div>
+      <div class="event">
+        <div class="hash">cc21297</div>
+        <div><div class="event-title">라운드 점수와 전술 등급</div><div class="event-desc">생존, HP, 시간, 구출, 성공 보너스를 계산하는 ScoreSystem과 S~D 결과 UI, 최고 점수 저장 구현.</div></div>
+        <div class="evidence">SCORING<br />PURE MODULE</div>
+      </div>
+      <div class="event">
+        <div class="hash">6e9babf</div>
+        <div><div class="event-title">게임 소개 제출 문서</div><div class="event-desc">현재 구현을 기준으로 게임 개요, 플레이, AI, 점수, 실행·배포를 정리한 5페이지 PDF와 편집 원본 제작.</div></div>
+        <div class="evidence">DOCUMENT<br />5 PAGES</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <h3>AI가 생성·수정한 주요 산출물</h3>
+    <div class="artifact-grid">
+      <div class="artifact"><b>AISystem.js</b><span>인식·결정·행동 분리, 4개 성향과 6개 상태</span></div>
+      <div class="artifact"><b>BattleSystem.js</b><span>자동 표적, 쿨타임 피해, 지휘관 오라</span></div>
+      <div class="artifact"><b>WorldMapScene.js</b><span>스테이지 경로, 선택, 해금, 점수 표시</span></div>
+      <div class="artifact"><b>CampaignSystem.js</b><span>부대 계승과 localStorage 진행 저장</span></div>
+      <div class="artifact"><b>ScoreSystem.js</b><span>Phaser 비의존 결과 점수 순수 계산</span></div>
+      <div class="artifact"><b>README / PDF</b><span>실행·배포·AI 설명과 제출 자료</span></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:4mm;">
+      <div class="card green"><h3>반복 활용 패턴</h3><p class="small no-margin">사용자가 실제 플레이에서 불편을 발견 → 짧은 수정 프롬프트 → AI가 관련 코드와 입력 구조 조사 → 최소 패치 → 동일 상황 재검증.</p></div>
+      <div class="card gold"><h3>추적 가능성</h3><p class="small no-margin">기능별 독립 커밋과 명확한 메시지를 사용했습니다. 심사자는 저장소 이력에서 각 프롬프트 단계가 어떤 파일 변경으로 이어졌는지 확인할 수 있습니다.</p></div>
+    </div>
+
+    <span class="footer-label">LAST COMMAND · AI 활용 기술서</span><span class="page-no">04 / 06</span>
+  </section>
+
+  <section class="page">
+    <div class="kicker">04 · REVIEW &amp; VERIFICATION</div>
+    <h2>검토와 품질 검증</h2>
+    <p class="lead">생성형 AI 출력의 정확성을 보장하기 위해 “코드가 작성되었다”를 완료 조건으로 사용하지 않았습니다. 정적 검사와 실제 Chrome 실행을 함께 사용하고, 실패한 검증은 원인을 확인해 수정 후 재실행했습니다.</p>
+
+    <div class="workflow">
+      <div class="workflow-step"><span>01</span><b>INSPECT</b><span>기존 파일·Git 상태 확인</span></div>
+      <div class="workflow-step"><span>02</span><b>PATCH</b><span>요구 범위의 코드 수정</span></div>
+      <div class="workflow-step"><span>03</span><b>CHECK</b><span>문법·diff 오류 검사</span></div>
+      <div class="workflow-step"><span>04</span><b>PLAY</b><span>Chrome 실제 장면 실행</span></div>
+      <div class="workflow-step"><span>05</span><b>REVIEW</b><span>결과 확인 후 커밋</span></div>
+    </div>
+
+    <table class="test-table">
+      <thead><tr><th>검증 영역</th><th>방법</th><th>확인 내용</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>JavaScript 문법</td><td><code>node --check</code></td><td>변경된 ES Module 전체 구문 오류 확인</td><td class="status">PASS</td></tr>
+        <tr><td>변경 품질</td><td><code>git diff --check</code></td><td>공백 오류와 잘못된 패치 흔적 확인</td><td class="status">PASS</td></tr>
+        <tr><td>정적 실행</td><td>로컬 HTTP 서버</td><td>CDN Phaser 및 상대경로 모듈 로드 확인</td><td class="status">PASS</td></tr>
+        <tr><td>게임 시작</td><td>Headless Chrome</td><td>메뉴 → 지도/Quick Battle → GameScene 진입</td><td class="status">PASS</td></tr>
+        <tr><td>핵심 전투</td><td>장면 상태 검사</td><td>이동, 자동 공격, 1·2·3 명령, AI 상태 변화</td><td class="status">PASS</td></tr>
+        <tr><td>캠페인 목표</td><td>목표별 시나리오</td><td>구출, 35초 방어, 장치 파괴, 보스 3단계</td><td class="status">PASS</td></tr>
+        <tr><td>결과 화면</td><td>승리·패배 강제 발생</td><td>등급·점수 항목, 지도/메인 버튼 hit area</td><td class="status">PASS</td></tr>
+        <tr><td>저장 데이터</td><td>localStorage 판독</td><td>스테이지 최고 점수와 캠페인 누적 점수</td><td class="status">PASS</td></tr>
+        <tr><td>브라우저 오류</td><td>Console/Runtime 수집</td><td>검증 시 JavaScript 예외 없음</td><td class="status">0 ERROR</td></tr>
+      </tbody>
+    </table>
+
+    <div class="metric-row">
+      <div class="metric"><b>15,609</b><span>90초·8/10 생존·2명 구출 예시 점수</span></div>
+      <div class="metric"><b>A</b><span>동일 검증 시 전술 등급</span></div>
+      <div class="metric"><b>0</b><span>최종 브라우저 콘솔 오류</span></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:4mm;">
+      <div class="card dark">
+        <h3>실패를 숨기지 않는 검증</h3>
+        <p class="small no-margin">테스트 코드도 처음부터 항상 정답은 아니었습니다. 결과 UI가 Phaser Container 내부로 이동해 일반 display list 검색이 실패했을 때, 실제 장면 구조를 조사하고 테스트가 Container 자식을 검사하도록 수정한 뒤 다시 통과시켰습니다.</p>
+      </div>
+      <div class="card orange">
+        <h3>남아 있는 한계</h3>
+        <p class="small no-margin">브라우저 자동 테스트 스크립트는 검증 중 임시로 실행했으며 저장소에는 테스트 프레임워크 형태로 유지하지 않았습니다. 향후 정식 회귀 테스트를 저장소에 포함하면 재현성이 더 높아집니다.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:4mm;">
+      <h3>사용자 승인 지점</h3>
+      <p class="small no-margin">기능 구현 후 변경 내용과 검증 결과를 사용자에게 보고했으며, 사용자가 “커밋 푸시”를 요청한 단계에서만 Git 커밋과 원격 저장소 반영을 수행했습니다. AI가 임의로 배포 범위를 확장하지 않도록 승인 경계를 유지했습니다.</p>
+    </div>
+
+    <span class="footer-label">LAST COMMAND · AI 활용 기술서</span><span class="page-no">05 / 06</span>
+  </section>
+
+  <section class="page">
+    <div class="kicker">05 · RUNTIME AI &amp; RESPONSIBILITY</div>
+    <h2>게임 AI와 책임 있는 활용</h2>
+    <p class="lead">개발에 사용한 생성형 AI와 게임 실행 중의 부대 AI는 서로 다릅니다. 게임은 외부 AI 서버에 접속하지 않으며, <code>AISystem.js</code>의 명시적인 규칙과 상태 전이로 각 병사의 행동을 결정합니다.</p>
+
+    <h3>런타임 부대 AI 구조</h3>
+    <div class="pipeline">
+      <div class="pill-grid">
+        <div class="pill">자신의 HP</div><div class="pill">플레이어 거리</div>
+        <div class="pill">가장 가까운 적</div><div class="pill">주변 아군 수</div>
+        <div class="pill">주변 적군 수</div><div class="pill">부대 명령</div>
+        <div class="pill">개별 성향</div><div class="pill">저체력 동료</div>
+      </div>
+      <div class="core">DECIDE<br />ALLY</div>
+      <div class="pill-grid">
+        <div class="pill">FOLLOW</div><div class="pill">ATTACK</div>
+        <div class="pill">RETREAT</div><div class="pill">PROTECT</div>
+        <div class="pill">REGROUP</div><div class="pill">DEFEND</div>
+      </div>
+    </div>
+    <p class="small muted">병사별 판단은 200~500ms 간격으로 분산되고, SpatialHash가 주변 셀의 유닛만 검색합니다. 판단 함수가 인식·행동 실행과 분리되어 향후 행동 트리, 강화학습 정책 또는 LLM 어댑터로 교체할 수 있습니다.</p>
+
+    <div class="boundary">
+      <div class="card boundary-card green">
+        <h3>개발 생성형 AI</h3>
+        <ul>
+          <li>도구: OpenAI Codex</li>
+          <li>시점: 제작·수정·검증·문서화 과정</li>
+          <li>입력: 사용자의 자연어 요구와 저장소 코드</li>
+          <li>출력: 코드 패치, 테스트 절차, 문서 초안</li>
+          <li>통제: 사용자 승인 및 실제 실행 검증</li>
+        </ul>
+      </div>
+      <div class="card boundary-card gold">
+        <h3>게임 런타임 AI</h3>
+        <ul>
+          <li>도구: 자체 제작 규칙 기반 AISystem</li>
+          <li>시점: 브라우저에서 플레이하는 동안</li>
+          <li>입력: HP, 거리, 병력 수, 명령, 성향</li>
+          <li>출력: 6개 상태와 이동·공격 대상</li>
+          <li>네트워크: 외부 API 호출 없음</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top:4mm;">위험과 대응</h3>
+    <table class="risk-table">
+      <tbody>
+        <tr><td>코드 오류·환각</td><td>문법 검사만으로 끝내지 않고 실제 Chrome에서 장면과 저장값을 확인했습니다.</td></tr>
+        <tr><td>요구 범위 이탈</td><td>기존 구조와 Git 상태를 먼저 읽고, 사용자 요청에 해당하는 파일만 단계적으로 수정했습니다.</td></tr>
+        <tr><td>저작권·모방 위험</td><td>특정 상용 게임의 캐릭터, 지명, 스토리, UI, 그래픽, 음악을 사용하지 않는 조건을 기준 프롬프트에 명시했습니다.</td></tr>
+        <tr><td>개인정보·네트워크</td><td>게임은 백엔드가 없으며 진행 데이터는 사용자의 브라우저 localStorage에만 저장됩니다.</td></tr>
+        <tr><td>AI 활용 과장</td><td>사용하지 않은 이미지·음악 생성 AI와 런타임 LLM을 명시하고, 규칙 기반 게임 AI와 구분했습니다.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="card dark" style="margin-top:4mm;">
+      <h3>재현 가능한 개발 절차</h3>
+      <p class="small no-margin"><strong class="accent">프롬프트 확인</strong> → <strong class="accent">저장소 상태 조사</strong> → <strong class="accent">파일 단위 패치</strong> → <strong class="accent">정적 검사</strong> → <strong class="accent">Chrome 시나리오 검증</strong> → <strong class="accent">변경 보고</strong> → <strong class="accent">사용자 승인 후 커밋·푸시</strong></p>
+    </div>
+
+    <h3 style="margin-top:4mm;">근거 저장소</h3>
+    <div class="repo">GitHub Repository · https://github.com/dongkyun2331/last-command</div>
+    <p class="tiny muted" style="margin-top:2.5mm;">주요 확인 파일: <code>js/systems/AISystem.js</code>, <code>SpatialHash.js</code>, <code>BattleSystem.js</code>, <code>CampaignSystem.js</code>, <code>ScoreSystem.js</code> 및 Git commit history.</p>
+
+    <span class="footer-label">LAST COMMAND · AI 활용 기술서</span><span class="page-no">06 / 06</span>
+  </section>
+</body>
+</html>
